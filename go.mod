@@ -1,3 +1,5 @@
+// +heroku goVersion 1.14
+
 module gitlab.com/donohutcheon/gowebserver
 
 go 1.14
