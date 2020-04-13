@@ -39,8 +39,14 @@ curl -X GET -d '{"email" : "dono@dono.com", "password" : "secret"}' -H "Authoriz
 
 #### Original blog post https://medium.com/@adigunhammedolalekan/build-and-deploy-a-secure-rest-api-with-go-postgresql-jwt-and-gorm-6fadf3da505b
 
-
 MariaDB CLI
 ```
-docker run -it --network side-project_default --rm mariadb mysql -hdonovanh -uroot -pcharka
+docker run -it --network host --rm mariadb mysql -hdonovanh -uroot -pcharka
+
+??? docker run -it --network side-project_default --rm mariadb mysql -hdonovanh -uroot -pcharka
+```
+
+Heroku Config Vars
+```
+heroku config:set token_password=thisIsTheJwtPasswordMofo --app charkadog
 ```
