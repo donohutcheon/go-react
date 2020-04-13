@@ -6,10 +6,11 @@ import (
 	"gitlab.com/donohutcheon/gowebserver/server"
 	"log"
 	"os"
-
 	//"github.com/donohutcheon/gojwt/app"
 
 	"github.com/gorilla/mux"
+	_ "github.com/heroku/x/hmetrics/onload"
+
 )
 
 var (

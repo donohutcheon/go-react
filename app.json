@@ -1,0 +1,11 @@
+{
+  "name": "Go Webserver",
+  "description": "Plain web server written in Go",
+  "keywords": [
+    "Webserver",
+    "GoLang",
+    "donohutcheon"
+  ],
+  "website": "http://github.com/donohutcheon/gowebserver",
+  "repository": "http://github.com/donohutcheon/gowebserver"
+}
