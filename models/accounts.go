@@ -3,16 +3,15 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	e "gitlab.com/donohutcheon/gowebserver/controllers/errors"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
-	"gitlab.com/donohutcheon/gowebserver/controllers/response"
-
 	"github.com/dgrijalva/jwt-go"
+	e "gitlab.com/donohutcheon/gowebserver/controllers/errors"
+	"gitlab.com/donohutcheon/gowebserver/controllers/response"
 	"golang.org/x/crypto/bcrypt"
 )
 
