@@ -35,6 +35,7 @@ func (h *Handlers) Logger(next HandlerFunc) http.HandlerFunc {
 
 //SetupRoutes add home route to mux
 func (h *Handlers) SetupRoutes(router *mux.Router) {
+	router.HandleFunc("/status",  h.Logger(controllers.Status)).Methods(http.MethodGet)
 	router.HandleFunc("/auth/sign-up",  h.Logger(controllers.CreateAccount)).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/users/current",  h.Logger(controllers.GetCurrentAccount)).Methods(http.MethodGet, http.MethodOptions)
 	router.HandleFunc("/auth/login", h.Logger(controllers.Authenticate)).Methods(http.MethodPost, http.MethodOptions)

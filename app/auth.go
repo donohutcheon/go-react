@@ -31,7 +31,7 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		notAuth := []string{"/auth/sign-up", "/auth/login"} //List of endpoints that doesn't require auth
+		notAuth := []string{"/auth/sign-up", "/auth/login", "/status"} //List of endpoints that doesn't require auth
 		requestPath := r.URL.Path                               //current request path
 
 		//check if request does not need authentication, serve the request if it doesn't need it
