@@ -1,0 +1,16 @@
+# github.com/dgrijalva/jwt-go v3.2.0+incompatible
+github.com/dgrijalva/jwt-go
+# github.com/go-sql-driver/mysql v1.4.1
+github.com/go-sql-driver/mysql
+# github.com/gorilla/mux v1.7.3
+github.com/gorilla/mux
+# github.com/heroku/x v0.0.22
+github.com/heroku/x/hmetrics
+github.com/heroku/x/hmetrics/onload
+# github.com/joho/godotenv v1.3.0
+github.com/joho/godotenv
+# golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
+# google.golang.org/appengine v1.6.5
+google.golang.org/appengine/cloudsql
