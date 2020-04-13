@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"gitlab.com/donohutcheon/gowebserver/routes"
 	"gitlab.com/donohutcheon/gowebserver/server"
 	"log"
@@ -10,7 +9,6 @@ import (
 
 	"github.com/gorilla/mux"
 	_ "github.com/heroku/x/hmetrics/onload"
-
 )
 
 var (
@@ -19,7 +17,8 @@ var (
 	//KeyFile environment variable for KeyFile
 	KeyFile = os.Getenv("KEY_FILE")
 	//ServiceAddress address to listen on
-	ServiceAddress = os.Getenv("SERVICE_ADDRESS")
+	BindAddress = os.Getenv("BIND_ADDRESS")
+	Port = os.Getenv("PORT")
 )
 
 func main() {
@@ -29,17 +28,12 @@ func main() {
 	router := mux.NewRouter()
 	h.SetupRoutes(router)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8000" //localhost
-	}
-
-	fmt.Println(port)
-	srv := server.New(router, ServiceAddress)
+	logger.Printf("Server Binding to %s:%s", BindAddress, Port)
+	srv := server.New(router, BindAddress, Port)
 	// TODO: Put back in for TLS
 	/*err := srv.ListenAndServeTLS(CertFile, KeyFile)*/
 	err := srv.ListenAndServe() //Launch the app, visit localhost:8000/api
 	if err != nil {
-		fmt.Print(err)
+		logger.Fatalf("Server failed to start %s", err.Error())
 	}
 }

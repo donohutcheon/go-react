@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -8,7 +9,7 @@ import (
 )
 
 //NewServer returns a configured TLS HTTP server.
-func New(router *mux.Router, ServiceAddress string) *http.Server {
+func New(router *mux.Router, bindAddress, port string) *http.Server {
 
 	//TODO: Uncomment once ready for HTTPS/TLS
 	/*tlsConfig := &tls.Config{
@@ -28,8 +29,9 @@ func New(router *mux.Router, ServiceAddress string) *http.Server {
 		},
 	}*/
 
+	serviceAddress := fmt.Sprintf("%s:%s", bindAddress, port)
 	srv := &http.Server{
-		Addr:              ServiceAddress,
+		Addr:              serviceAddress,
 		Handler:           router,
 		//TLSConfig:         tlsConfig,
 		ReadTimeout:       5 * time.Second,
