@@ -30,8 +30,13 @@ func (m Response) SetString(key string, value string) {
 
 func (m Response) Respond(w http.ResponseWriter) error {
 	w.Header().Add("Content-Type", "application/json")
-	encoder := json.NewEncoder(w)
-	err := encoder.Encode(m)
+
+	bytes, err := json.Marshal(m)
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write(bytes)
 	if err != nil {
 		return err
 	}

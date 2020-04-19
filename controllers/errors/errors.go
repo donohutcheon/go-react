@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"gitlab.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/controllers/response"
 )
 
 type ControllerError struct {

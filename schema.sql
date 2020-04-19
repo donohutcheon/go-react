@@ -8,7 +8,6 @@ CREATE TABLE `accounts` (
   `deleted_at` timestamp NULL DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
-  `token` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_accounts_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=latin1;

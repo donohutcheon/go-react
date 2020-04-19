@@ -1,40 +1,47 @@
-package models
+package datalayer
 
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"time"
-
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/xo/dburl"
+	"os"
 )
 
 type Model struct {
-	ID        int64      `json:"ID"`
-	CreatedAt *time.Time `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt"`
-	DeletedAt *time.Time `json:"deletedAt"`
+	ID        int64        `json:"ID" db:"id"`
+	CreatedAt sql.NullTime `json:"createdAt" db:"created_at"`
+	UpdatedAt sql.NullTime `json:"updatedAt" db:"updated_at"`
+	DeletedAt sql.NullTime `json:"deletedAt" db:"deleted_at"`
 }
 
-var conn *sql.DB
+type PersistenceDataLayer struct {
+	conn *sqlx.DB
+}
 
-func init() {
+var (
+	ErrNoData = sql.ErrNoRows
+)
+
+func New() (*PersistenceDataLayer, error){
+	//var conn sqlx.DB
 	err := godotenv.Load()
 	if err != nil {
 		// TODO: Use proper logger
 		fmt.Printf("Could not load environment files. %s", err.Error())
 	}
 
-	var ok bool
-	conn, err, ok = tryConnectHerokuJawsDB()
+	conn, err, ok := tryConnectHerokuJawsDB()
 	if err != nil {
 		// TODO: Use proper logger
 		fmt.Printf("Could not connect to JawsDB. %s", err.Error())
-		return
+		return nil, err
 	} else if ok {
-		return
+		return &PersistenceDataLayer{
+			conn: conn,
+		}, nil
 	}
 
 	username := os.Getenv("db_user")
@@ -46,32 +53,36 @@ func init() {
 	conn, err = createCon(username, password, dbHost, dbPort, dbName)
 	if err != nil {
 		fmt.Print(err)
+		return nil, err
 	}
+	return &PersistenceDataLayer{
+		conn: conn,
+	}, nil
 }
 
-func GetConn() *sql.DB {
-	return conn
+func (p *PersistenceDataLayer) GetConn() *sqlx.DB {
+	return p.conn
 }
 
 /*Create mysql connection*/
-func createCon(username string, password string, dbHost string, dbPort string, dbName string) (db *sql.DB, err error) {
+func createCon(username string, password string, dbHost string, dbPort string, dbName string) (db *sqlx.DB, err error) {
 	dbURI := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", username, password, dbHost, dbPort, dbName)
-	db, err = sql.Open("mysql", dbURI)
+	db, err = sqlx.Open("mysql", dbURI)
 	if err != nil {
 		fmt.Println(err.Error())
 	} else {
 		fmt.Println("database is connected")
 	}
-	//defer db.Close()
+
 	// make sure connection is available
 	err = db.Ping()
 	if err != nil {
-		fmt.Printf("MySQL db is not connected %s", err.Error())
+		fmt.Printf("MySQL datalayer is not connected %s", err.Error())
 	}
 	return db, err
 }
 
-func tryConnectHerokuJawsDB() (*sql.DB, error, bool){
+func tryConnectHerokuJawsDB() (*sqlx.DB, error, bool){
 	dbURI := os.Getenv("JAWSDB_MARIA_URL")
 	if len(dbURI) == 0 {
 		return nil, nil, false
@@ -84,10 +95,12 @@ func tryConnectHerokuJawsDB() (*sql.DB, error, bool){
 		fmt.Println("database is connected")
 	}
 
-	err = db.Ping()
+	dbx := sqlx.NewDb(db, "mysql")
+
+	err = dbx.Ping()
 	if err != nil {
 		return nil, err, false
 	}
 
-	return db, nil, true
+	return dbx, nil, true
 }

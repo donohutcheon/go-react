@@ -3,6 +3,8 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"github.com/donohutcheon/gowebserver/app"
+	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
 	"net/http"
 	"os"
@@ -10,27 +12,18 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	e "gitlab.com/donohutcheon/gowebserver/controllers/errors"
-	"gitlab.com/donohutcheon/gowebserver/controllers/response"
+	e "github.com/donohutcheon/gowebserver/controllers/errors"
+	"github.com/donohutcheon/gowebserver/controllers/response"
 	"golang.org/x/crypto/bcrypt"
 )
 
-const AccessTokenLifeSpan = 600
-const RefreshTokenLifeSpan = 6000
-
-var ErrLoginFailed = e.NewError("Invalid login credentials. Please try again", http.StatusForbidden)
-var ErrValidationEmail = e.NewError("Email address is required", http.StatusBadRequest)
-var ErrValidationPassword = e.NewError("Email address is required", http.StatusBadRequest)
-var ErrUserDoesNotExist = e.NewError("User does not exist", http.StatusForbidden)
-var ErrEmailExists = e.NewError("Email address already in use by another user", http.StatusBadRequest)
-
-/*
-JWT claims struct
-*/
-type JSONWebToken struct {
-	UserID int64 `json:"userID"`
-	jwt.StandardClaims
-}
+var (
+	ErrLoginFailed = e.NewError("Invalid login credentials", http.StatusForbidden)
+	ErrValidationEmail = e.NewError("Email address is required", http.StatusBadRequest)
+	ErrValidationPassword = e.NewError("Email address is required", http.StatusBadRequest)
+	ErrUserDoesNotExist = e.NewError("User does not exist", http.StatusForbidden)
+	ErrEmailExists = e.NewError("Email address already in use by another user", http.StatusBadRequest)
+)
 
 type Settings struct {
 	ID int `json:"id"`
@@ -39,25 +32,43 @@ type Settings struct {
 
 //a struct to rep user account
 type Account struct {
-	Model
-	Username    string   `json:"username"`
-	Email       string   `json:"email"`
-	FirstName   string   `json:"firstName"`
-	Surname     string   `json:"surname"`
-	Age         int      `json:"age"`
-	Address     string   `json:"address"`
-	Roles       []string `json:"roles"`
-	Settings    Settings `json:"settings"`
-	Password    string   `json:"password"`
-	AccessToken string   `json:"access_token" sql:"-"`
-	RefreshToken string  `json:"refresh_token" sql:"-"`
+	datalayer.Model
+	Username     string   `json:"username"`
+	Email        string   `json:"email"`
+	FirstName    string   `json:"firstName"`
+	Surname      string   `json:"surname"`
+	Age          int      `json:"age"`
+	Address      string   `json:"address"`
+	Roles        []string `json:"roles"`
+	Settings     Settings `json:"settings"`
+	Password     string   `json:"password"`
+	AccessToken  string   `json:"access_token" sql:"-"`
+	RefreshToken string   `json:"refresh_token" sql:"-"`
+	dataLayer    datalayer.DataLayer
 }
 
-type Token struct {
-	ExpiresIn int64 `json:"expires_in"`
-	AccessToken string  `json:"access_token" sql:"-"`
-	RefreshToken string  `json:"refresh_token" sql:"-"`
+func NewAccount(dataLayer datalayer.DataLayer) *Account {
+	account := new(Account)
+	account.dataLayer = dataLayer
+	return account
 }
+
+func (a *Account) convert(account datalayer.Account) {
+	a.ID = account.ID
+	a.CreatedAt = account.CreatedAt
+	a.UpdatedAt = account.UpdatedAt
+	a.DeletedAt = account.DeletedAt
+	if account.Email.Valid {
+		a.Email = account.Email.String
+	}
+	if account.Password.Valid {
+		a.Password = account.Password.String
+	}
+	a.Roles = []string{"ADMIN","USER"}
+	a.Settings.ID = 0
+	a.Settings.ThemeName = "default"
+}
+
 
 //Validate incoming user details...
 func (a *Account) validate() (response.Response, error) {
@@ -71,9 +82,9 @@ func (a *Account) validate() (response.Response, error) {
 
 	//Email must be unique
 	//check for errors and duplicate emails
-	var id sql.NullString
-	GetConn().QueryRow("select id from accounts where email = $1", a.Email).Scan(&id)
-	if id.Valid {
+	dl := a.dataLayer
+	_, err := dl.GetAccountByEmail(a.Email)
+	if err != datalayer.ErrNoData {
 		return nil, ErrEmailExists
 	}
 
@@ -89,31 +100,28 @@ func (a *Account) Create() (response.Response, error) {
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(a.Password), bcrypt.DefaultCost)
 	a.Password = string(hashedPassword)
 
-	//GetDB().Create(account)
-	result, err := GetConn().Exec("insert into accounts(email, password) values (?, ?)", a.Email, a.Password)
+	dl := a.dataLayer
+	id, err :=  dl.CreateAccount(a.Email, a.Password)
 	if err != nil {
 		log.Fatal(err) // TODO: remove
 		return nil, err
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		log.Fatal(err) // TODO: remove
+	dbAccount, err := dl.GetAccountByID(id)
+	if err != datalayer.ErrNoData {
 		return nil, err
 	}
 
-	account, err := GetUser(id)
-	if err != nil {
-		return nil, err
-	}
+	account := new(Account)
+	account.convert(*dbAccount)
 
 	//Create new JWT token for the newly registered account
 	now := time.Now()
 	epochSecs := now.Unix()
-	expireDateTime := epochSecs + AccessTokenLifeSpan
-	accessToken := &JSONWebToken{
-		account.ID,
-		jwt.StandardClaims{
+	expireDateTime := epochSecs + app.AccessTokenLifeSpan
+	accessToken := &app.JSONWebToken{
+		UserID: dbAccount.ID,
+		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireDateTime,
 			IssuedAt:  epochSecs,
 		},
@@ -122,10 +130,10 @@ func (a *Account) Create() (response.Response, error) {
 	accessTokenString, _ := signedAccessToken.SignedString([]byte(os.Getenv("token_password")))
 	account.AccessToken = accessTokenString
 
-	refreshToken := &JSONWebToken{
-		account.ID,
-		jwt.StandardClaims{
-			ExpiresAt: epochSecs + RefreshTokenLifeSpan,
+	refreshToken := &app.JSONWebToken{
+		UserID: account.ID,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: epochSecs + app.RefreshTokenLifeSpan,
 			IssuedAt:  epochSecs,
 		},
 	}
@@ -144,86 +152,47 @@ func (a *Account) Create() (response.Response, error) {
 	return response, nil
 }
 
-func Login(email, password string) (response.Response, error) {
-	account := &Account{}
-	token := &Token{}
-	err := GetConn().QueryRow("select id, email, password, token, created_at, updated_at, deleted_at from accounts where email = ?", email).Scan(&account.ID, &account.Email, &account.Password, &account.AccessToken, &account.CreatedAt, &account.UpdatedAt, &account.DeletedAt)
+func (a *Account) Login(email, password string) (response.Response, error) {
+	dataLayer := a.dataLayer
+	dbAcc, err := dataLayer.GetAccountByEmail(email)
 	if err == sql.ErrNoRows {
 		return nil, ErrLoginFailed
+	} else if err != nil {
+		return nil, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(password))
+	a.convert(*dbAcc)
+
+	err = bcrypt.CompareHashAndPassword([]byte(a.Password), []byte(password))
 	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
 		return nil, ErrLoginFailed
 	}
-	//Worked! Logged In
-	account.Password = ""
+	// Worked! Logged In
+	a.Password = ""
 
-	//Create JWT token
-	now := time.Now()
-	epochSecs := now.Unix()
-	expireDateTime := epochSecs + AccessTokenLifeSpan
-	token.ExpiresIn = expireDateTime
-	accessToken := &JSONWebToken{
-		account.ID,
-		jwt.StandardClaims{
-			ExpiresAt: expireDateTime,
-			IssuedAt:  epochSecs,
-		},
+	// Create JWT token
+	var tokenResp app.TokenResponse
+	tokenResp, err = app.CreateToken(a.ID)
+	if err != nil {
+		return nil, e.Wrap("token creation failed", http.StatusInternalServerError, err)
 	}
-
-	signedAccessToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), accessToken)
-	accessTokenString, _ := signedAccessToken.SignedString([]byte(os.Getenv("token_password")))
-	token.AccessToken = accessTokenString
-
-	refreshToken := &JSONWebToken{
-		account.ID,
-		jwt.StandardClaims{
-			ExpiresAt: epochSecs + RefreshTokenLifeSpan,
-			IssuedAt:  epochSecs,
-		},
-	}
-	signedRefreshToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), refreshToken)
-	refreshTokenString, _ := signedRefreshToken.SignedString([]byte(os.Getenv("token_password")))
-	token.RefreshToken = refreshTokenString
 
 	resp := response.New(true, "Logged In")
-	resp["token"] = token
+	resp["token"] = tokenResp
 
 	return resp, nil
 }
 
-func GetUser(id int64) (*Account, error) {
-	account := &Account{}
-	var token sql.NullString
-	var createdAt, updatedAt, deletedAt sql.NullTime
-	err := GetConn().QueryRow(`SELECT id, email, password, token, created_at, updated_at, deleted_at FROM accounts WHERE id=?`, id).Scan(&account.ID, &account.Email, &account.Password, &token, &createdAt, &updatedAt, &deletedAt)
-	if err == sql.ErrNoRows {
-		fmt.Println(false, "Invalid login credentials. Please try again")
-		return nil, ErrUserDoesNotExist
+func (a *Account) GetAccount(id int64) (error) {
+	dl := a.dataLayer
+	dbAccount, err := dl.GetAccountByID(id)
+	if err == datalayer.ErrNoData {
+		return ErrUserDoesNotExist
 	} else if err != nil {
-		fmt.Printf("Failed to query account [%d] from database", id) // TODO: remove
-		return nil, e.Wrap(fmt.Sprintf("Failed to query account [%d] from database", id), http.StatusInternalServerError, err)
+		return e.Wrap(fmt.Sprintf("Failed to query account [%d] from database", id), http.StatusInternalServerError, err)
 	}
 
-	if token.Valid {
-		account.AccessToken = token.String
-	}
-	if createdAt.Valid {
-		account.CreatedAt = &createdAt.Time
-	}
-	if updatedAt.Valid {
-		account.UpdatedAt = &updatedAt.Time
-	}
-	if deletedAt.Valid {
-		account.DeletedAt = &deletedAt.Time
-	}
+	a.convert(*dbAccount)
 
-	account.Username = account.Email
-	account.Password = ""
-	account.Roles = []string{"ADMIN","USER"}
-	account.Settings.ID = 0
-	account.Settings.ThemeName = "default"
-
-	return account, nil
+	return nil
 }

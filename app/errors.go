@@ -3,7 +3,7 @@ package app
 import (
 	"net/http"
 
-	"gitlab.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/controllers/response"
 )
 
 var NotFoundHandler = func(next http.Handler) http.Handler {

@@ -3,19 +3,36 @@ package app
 import (
 	"context"
 	"fmt"
-
-	"gitlab.com/donohutcheon/gowebserver/controllers/response"
-
-	"github.com/dgrijalva/jwt-go"
-	"gitlab.com/donohutcheon/gowebserver/models"
-
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	"github.com/dgrijalva/jwt-go"
+	e "github.com/donohutcheon/gowebserver/controllers/errors"
+	"github.com/donohutcheon/gowebserver/controllers/response"
 )
 
-var JwtAuthentication = func(next http.Handler) http.Handler {
+const AccessTokenLifeSpan = 600
+const RefreshTokenLifeSpan = 6000
 
+type JSONWebToken struct {
+	UserID int64 `json:"userID"`
+	jwt.StandardClaims
+}
+
+type RefreshJWTReq struct {
+	GrantType    string `json:"grant_type" sql:"-"`
+	RefreshToken string `json:"refresh_token" sql:"-"`
+}
+
+type TokenResponse struct {
+	ExpiresIn int64 `json:"expires_in"`
+	AccessToken string  `json:"access_token" sql:"-"`
+	RefreshToken string  `json:"refresh_token" sql:"-"`
+}
+
+func JwtAuthentication (next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")
@@ -31,12 +48,18 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		notAuth := []string{"/auth/sign-up", "/auth/login", "/status"} //List of endpoints that doesn't require auth
-		requestPath := r.URL.Path                               //current request path
+		// List of endpoints that doesn't require auth
+		notAuth := []string{
+			"/auth/login",
+			"/auth/refresh",
+			"/auth/sign-up",
+			"/status",
+		}
+
+		requestPath := r.URL.Path // Current request path
 
 		//check if request does not need authentication, serve the request if it doesn't need it
 		for _, value := range notAuth {
-
 			if value == requestPath {
 				next.ServeHTTP(w, r)
 				return
@@ -64,7 +87,7 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 		}
 
 		tokenPart := splitted[1] //Grab the token part, what we are truly interested in
-		tk := &models.JSONWebToken{}
+		tk := &JSONWebToken{}
 
 		token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("token_password")), nil
@@ -88,9 +111,70 @@ var JwtAuthentication = func(next http.Handler) http.Handler {
 		}
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
-		fmt.Sprintf("User %", tk.UserID) //Useful for monitoring
+		fmt.Printf("User %d", tk.UserID) //Useful for monitoring
 		ctx := context.WithValue(r.Context(), "user", tk.UserID)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r) //proceed in the middleware chain!
 	})
+}
+
+func CreateToken(userID int64) (TokenResponse, error){
+	token := new(TokenResponse)
+	now := time.Now()
+	epochSecs := now.Unix()
+	expireDateTime := epochSecs + AccessTokenLifeSpan
+	token.ExpiresIn = expireDateTime
+	accessToken := &JSONWebToken{
+		UserID: userID,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expireDateTime,
+			IssuedAt:  epochSecs,
+		},
+	}
+
+	signedAccessToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), accessToken)
+	accessTokenString, _ := signedAccessToken.SignedString([]byte(os.Getenv("token_password")))
+	token.AccessToken = accessTokenString
+
+	refreshToken := &JSONWebToken{
+		UserID: userID,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: epochSecs + RefreshTokenLifeSpan,
+			IssuedAt:  epochSecs,
+		},
+	}
+	signedRefreshToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), refreshToken)
+	refreshTokenString, _ := signedRefreshToken.SignedString([]byte(os.Getenv("token_password")))
+	token.RefreshToken = refreshTokenString
+
+	return *token, nil
+}
+
+func RefreshToken(rawToken string) (response.Response, error) {
+	tk := new(JSONWebToken)
+
+	token, err := jwt.ParseWithClaims(rawToken, tk, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("token_password")), nil
+	})
+	if err != nil { //Malformed token, returns with http code 403 as usual
+		return nil, e.Wrap("Token rejected", http.StatusForbidden, err)
+	}
+
+	if !token.Valid { //Token is invalid, maybe not signed on this server
+		return nil, e.NewError ("token is not valid", http.StatusForbidden)
+	}
+
+	fmt.Println("UserID %d", tk.UserID)
+
+	//Create JWT token
+	var tokenResp TokenResponse
+	tokenResp, err = CreateToken(tk.UserID)
+	if err != nil {
+		return nil, e.Wrap("token creation failed", http.StatusInternalServerError, err)
+	}
+
+	resp := response.New(true, "Tokens refreshed")
+	resp["token"] = tokenResp
+
+	return resp, nil
 }

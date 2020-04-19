@@ -5,6 +5,8 @@
 New User
 ```
 curl -X POST -d '{"email" : "dono@dono.com", "password" : "secret"}' -H 'Content-Type: application/json' localhost:8000/user/new
+
+curl -X POST -d '{"email" : "dono@dono.com", "password" : "secret"}' -H 'Content-Type: application/json' charkadog.herokuapp.com/auth/sign-up
 ```
 
 Get Current User
