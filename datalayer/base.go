@@ -3,11 +3,12 @@ package datalayer
 import (
 	"database/sql"
 	"fmt"
+	"os"
+
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/xo/dburl"
-	"os"
 )
 
 type Model struct {
@@ -26,7 +27,6 @@ var (
 )
 
 func New() (*PersistenceDataLayer, error){
-	//var conn sqlx.DB
 	err := godotenv.Load()
 	if err != nil {
 		// TODO: Use proper logger

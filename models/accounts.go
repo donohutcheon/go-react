@@ -3,8 +3,6 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"github.com/donohutcheon/gowebserver/app"
-	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
 	"net/http"
 	"os"
@@ -12,8 +10,10 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/donohutcheon/gowebserver/app"
 	e "github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/datalayer"
 	"golang.org/x/crypto/bcrypt"
 )
 

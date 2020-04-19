@@ -3,8 +3,9 @@ package datalayer
 import (
 	"database/sql"
 	"fmt"
-	"github.com/donohutcheon/gowebserver/controllers/response"
 	"log"
+	
+	"github.com/donohutcheon/gowebserver/controllers/response"
 )
 
 type Contact struct {

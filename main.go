@@ -1,13 +1,12 @@
 package main
 
 import (
+	"log"
+	"os"
+
 	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/routes"
 	"github.com/donohutcheon/gowebserver/server"
-	"log"
-	"os"
-	//"github.com/donohutcheon/gojwt/app"
-
 	"github.com/gorilla/mux"
 	_ "github.com/heroku/x/hmetrics/onload"
 )
