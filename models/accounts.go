@@ -69,7 +69,6 @@ func (a *Account) convert(account datalayer.Account) {
 	a.Settings.ThemeName = "default"
 }
 
-
 //Validate incoming user details...
 func (a *Account) validate() (response.Response, error) {
 	if !strings.Contains(a.Email, "@") {

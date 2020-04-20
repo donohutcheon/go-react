@@ -50,21 +50,14 @@ func GetCurrentAccount(w http.ResponseWriter, r *http.Request, logger *log.Logge
 	id := r.Context().Value("user").(int64)
 
 	account := models.NewAccount(dataLayer)
-
 	err := account.GetAccount(id)
 	if err != nil {
 		errors.WriteError(w, err)
 		return err
 	}
 
-	data, err := dataLayer.GetAccountByID(id)
-	if err != nil {
-		errors.WriteError(w, err)
-		return err
-	}
-
 	resp := response.New(true, "success")
-	resp.Set("data", data)
+	resp.Set("data", account)
 
 	err = resp.Respond(w)
 	if err != nil {
