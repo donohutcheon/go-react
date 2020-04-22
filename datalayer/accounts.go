@@ -24,8 +24,9 @@ func (p *PersistenceDataLayer) GetAccountByEmail(email string) (*Account, error)
 
 func (p *PersistenceDataLayer) GetAccountByID(id int64) (*Account, error) {
 	account := new(Account)
-	err := p.GetConn().QueryRow(`SELECT id, email, password, created_at, updated_at, deleted_at FROM accounts WHERE id=?`, id).Scan(&account)
-	 if err != nil {
+	row := p.GetConn().QueryRowx(`SELECT id, email, password, created_at, updated_at, deleted_at FROM accounts WHERE id=?`, id)
+	err := row.StructScan(account)
+	if err != nil {
 		return nil, err
 	}
 

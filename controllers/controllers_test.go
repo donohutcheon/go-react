@@ -22,7 +22,7 @@ func setup(t *testing.T, route string, handlerFunc routes.HandlerFunc) (string, 
 	err = mockDataLayer.LoadContactTestData("testdata/contacts.json")
 	require.NoError(t, err)
 	h := routes.NewHandlers(logger, mockDataLayer)
-	mux.HandleFunc(route, h.Logger(handlerFunc))
+	mux.HandleFunc(route, h.WrapHandlerFunc(handlerFunc))
 	return server.URL, func() {
 		defer server.Close()
 	}

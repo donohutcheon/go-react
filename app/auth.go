@@ -3,6 +3,8 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/donohutcheon/gowebserver/datalayer"
+	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -32,7 +34,7 @@ type TokenResponse struct {
 	RefreshToken string  `json:"refresh_token" sql:"-"`
 }
 
-func JwtAuthentication (next http.Handler) http.Handler {
+func JwtAuthentication (next http.Handler, logger *log.Logger, dataLayer datalayer.DataLayer) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")
@@ -109,6 +111,13 @@ func JwtAuthentication (next http.Handler) http.Handler {
 			resp.Respond(w)
 			return
 		}
+
+		// TODO: Example, remove
+		/*account, err := dataLayer.GetAccountByID(tk.UserID)
+		if err != nil {
+			log.Println(err.Error())
+		}
+		log.Print(account)*/
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
 		fmt.Printf("User %d", tk.UserID) //Useful for monitoring
