@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "createdAt": {
+      "Time": "2019-06-03T08:20:56Z",
+      "Valid": true
+    },
+    "updatedAt": {
+      "Time": "2020-02-29T20:00:04Z",
+      "Valid": true
+    },
+    "deletedAt": {
+      "Time": "0001-01-01T00:00:00Z",
+      "Valid": false
+    },
+    "name": "Shao Khan",
+    "phone": "0831111111",
+    "user_id": 0
+  },
+  {
+    "id": 2,
+    "createdAt": {
+      "Time": "2019-06-03T08:20:56Z",
+      "Valid": true
+    },
+    "updatedAt": {
+      "Time": "2020-02-29T20:00:04Z",
+      "Valid": true
+    },
+    "deletedAt": {
+      "Time": "0001-01-01T00:00:00Z",
+      "Valid": false
+    },
+    "name": "Reptile",
+    "phone": "0832222222",
+    "user_id": 0
+  },
+  {
+    "id": 3,
+    "createdAt": {
+      "Time": "2019-06-03T08:20:56Z",
+      "Valid": true
+    },
+    "updatedAt": {
+      "Time": "2020-02-29T20:00:04Z",
+      "Valid": true
+    },
+    "deletedAt": {
+      "Time": "0001-01-01T00:00:00Z",
+      "Valid": false
+    },
+    "name": "Scorpion",
+    "phone": "0832222222",
+    "user_id": 1
+  }
+]

@@ -68,7 +68,7 @@ func TestAuthenticate(t *testing.T) {
 	}
 
 	route := "/auth/login"
-	url, closer := setup(route, controllers.Authenticate)
+	url, closer := setup(t, route, controllers.Authenticate)
 	defer closer()
 	ctx := context.Background()
 	now := time.Now()

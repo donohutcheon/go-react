@@ -15,7 +15,7 @@ import (
 
 func TestGetStatus(t *testing.T) {
 	route := "/status"
-	url, closer := setup(route, controllers.Status)
+	url, closer := setup(t, route, controllers.Status)
 	defer closer()
 	ctx := context.Background()
 
