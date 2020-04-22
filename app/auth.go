@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	e "github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/datalayer"
 )
 
 const AccessTokenLifeSpan = 600
