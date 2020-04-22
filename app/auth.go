@@ -164,7 +164,7 @@ func RefreshToken(rawToken string) (response.Response, error) {
 		return nil, e.NewError ("token is not valid", http.StatusForbidden)
 	}
 
-	fmt.Println("UserID %d", tk.UserID)
+	fmt.Printf("UserID %d", tk.UserID)
 
 	//Create JWT token
 	var tokenResp TokenResponse
