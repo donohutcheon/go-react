@@ -57,3 +57,7 @@ docker run -it --network host --rm mariadb mysql -heporqep6b4b8ql12.chr7pe7iynqr
 heroku config:set token_password=thisIsTheJwtPasswordMofo --app charkadog
 heroku config:set BIND_ADDRESS=0.0.0.0 --app charkadog
 ```
+
+## Heroku URL
+
+https://charkadog.herokuapp.com
