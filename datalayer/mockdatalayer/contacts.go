@@ -10,9 +10,9 @@ import (
 
 func (m *MockDataLayer) getNextContactID() int64 {
 	var maxID int64 = math.MaxInt64
-	for _, account := range m.Accounts {
-		if account.ID > maxID {
-			maxID = account.ID
+	for _, contact := range m.Contacts {
+		if contact.ID > maxID {
+			maxID = contact.ID
 		}
 	}
 
@@ -23,12 +23,14 @@ func (m *MockDataLayer) CreateContact(name, phone string, userID int64) (int64, 
 	contact := &datalayer.Contact{
 		Model:    datalayer.Model{
 			ID:        m.getNextContactID(),
-			CreatedAt: sql.NullTime{
-				Time:  time.Now(),
-				Valid: true,
+			CreatedAt: datalayer.JsonNullTime{
+				NullTime: sql.NullTime{
+					Time:  time.Now(),
+					Valid: true,
+				},
 			},
-			UpdatedAt: sql.NullTime{},
-			DeletedAt: sql.NullTime{},
+			UpdatedAt: datalayer.JsonNullTime{},
+			DeletedAt: datalayer.JsonNullTime{},
 		},
 		Name: name,
 		Phone: phone,

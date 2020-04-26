@@ -48,12 +48,14 @@ func (h *Handlers) WrapMiddlewareFunc(next MiddlewareFunc) mux.MiddlewareFunc {
 //SetupRoutes add home route to mux
 func (h *Handlers) SetupRoutes(router *mux.Router) {
 	router.HandleFunc("/status",  h.WrapHandlerFunc(controllers.Status)).Methods(http.MethodGet)
-	router.HandleFunc("/auth/sign-up",  h.WrapHandlerFunc(controllers.CreateAccount)).Methods(http.MethodPost, http.MethodOptions)
-	router.HandleFunc("/users/current",  h.WrapHandlerFunc(controllers.GetCurrentAccount)).Methods(http.MethodGet, http.MethodOptions)
+	router.HandleFunc("/auth/sign-up",  h.WrapHandlerFunc(controllers.CreateUser)).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/users/current",  h.WrapHandlerFunc(controllers.GetCurrentUser)).Methods(http.MethodGet, http.MethodOptions)
 	router.HandleFunc("/auth/login", h.WrapHandlerFunc(controllers.Authenticate)).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/auth/refresh", h.WrapHandlerFunc(controllers.RefreshToken)).Methods(http.MethodPost, http.MethodOptions)
-	router.HandleFunc("/contacts/new", h.WrapHandlerFunc(controllers.CreateContact)).Methods(http.MethodPost)
-	router.HandleFunc("/me/contacts", h.WrapHandlerFunc(controllers.GetContactsFor)).Methods(http.MethodGet) //  user/2/contacts
+	router.HandleFunc("/contacts/new", h.WrapHandlerFunc(controllers.CreateContact)).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/me/contacts", h.WrapHandlerFunc(controllers.GetContactsFor)).Methods(http.MethodGet, http.MethodOptions)
+	router.HandleFunc("/card-transactions/new", h.WrapHandlerFunc(controllers.CreateCardTransaction)).Methods(http.MethodPost, http.MethodOptions)
+	router.HandleFunc("/me/card-transactions", h.WrapHandlerFunc(controllers.GetCardTransactions)).Methods(http.MethodGet, http.MethodOptions)
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(h.WrapMiddlewareFunc(app.JwtAuthentication)) //attach JWT auth middleware
 }

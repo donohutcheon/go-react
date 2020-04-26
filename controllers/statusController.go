@@ -1,11 +1,11 @@
 package controllers
 
 import (
-	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
 	"net/http"
 
 	"github.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/datalayer"
 )
 
 func Status(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {

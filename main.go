@@ -18,7 +18,7 @@ var (
 	KeyFile = os.Getenv("KEY_FILE")
 	//ServiceAddress address to listen on
 	BindAddress = os.Getenv("BIND_ADDRESS")
-	Port = os.Getenv("PORT")
+	Port        = os.Getenv("PORT")
 )
 
 func main() {

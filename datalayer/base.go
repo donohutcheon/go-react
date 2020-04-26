@@ -13,9 +13,9 @@ import (
 
 type Model struct {
 	ID        int64        `json:"id" db:"id"`
-	CreatedAt sql.NullTime `json:"createdAt" db:"created_at"`
-	UpdatedAt sql.NullTime `json:"updatedAt" db:"updated_at"`
-	DeletedAt sql.NullTime `json:"deletedAt" db:"deleted_at"`
+	CreatedAt JsonNullTime `json:"createdAt" db:"created_at"`
+	UpdatedAt JsonNullTime `json:"updatedAt" db:"updated_at"`
+	DeletedAt JsonNullTime `json:"deletedAt" db:"deleted_at"`
 }
 
 type PersistenceDataLayer struct {

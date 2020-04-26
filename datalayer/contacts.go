@@ -4,8 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	
-	"github.com/donohutcheon/gowebserver/controllers/response"
 )
 
 type Contact struct {
@@ -25,16 +23,6 @@ func (p *PersistenceDataLayer) CreateContact(name, phone string, userID int64) (
 	if err != nil {
 		// TODO: remove logging
 		log.Fatal(err)
-		return 0, err
-	}
-	contact, err := p.GetContactByID(id)
-	if err != nil {
-		return 0, err
-	}
-
-	resp := response.New(true, "success")
-	err = resp.Set("contact", contact)
-	if err != nil {
 		return 0, err
 	}
 

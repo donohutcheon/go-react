@@ -1,58 +1,13 @@
-{
-	"token":
-	{
-		"expires_in":1575834982018,
-		"access_token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJmdWxsTmFtZSI6IkFkbWluIEFkbWluIiwicm9sZSI6WyJ1c2VyIiwiYWRtaW4iXSwiaWF0IjoxNTc1ODMxMzgyLCJleHAiOjE1NzU4MzQ5ODJ9.MRmLKNkddgwMO4Ige8Ys2heXR3s1HrCBnaAAfMaYb34",
-		"refresh_token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbkBhZG1pbi5jb20iLCJmdWxsTmFtZSI6IkFkbWluIEFkbWluIiwicm9sZSI6WyJ1c2VyIiwiYWRtaW4iXSwiaWF0IjoxNTc1ODMxMzgyLCJleHAiOjE1Nzg0MjMzODJ9.w8X6HgmzgYIaffL6SgKgndCAcrZv2YWICdtQzUw2_4o"
-	}
-}
+TODO:
 
+Saturday:
+    Finish tests (done-ish)
+    Get Heroku working (not done)
+    Implement logout (not-done)
 
-{
-	"account":
-	{
-		"ID":16,
-		"createdAt":null,
-		"updatedAt":null,
-		"deletedAt":null,
-		"email":"dono@dono.com",
-		"password":"",
-		"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjE2LCJleHAiOjE1NzU4MzIzMzgsImlhdCI6MTU3NTgzMTczOH0.KYX-fqQaj1u-_IHWtizK703D2yFy8WlPc3BCii0O-uQ"
-	},
-	"message":"Logged In",
-	"status":true
-}
-
-
-
-{
-	"userName":"admin",
-	"email":"admin@admin.com",
-	"firstName":"Admin",
-	"lastName":"Admin",
-	"age":null,
-	"address":null,
-	"roles":["ADMIN","USER"],
-	"settings": {
-		"id":1,
-		"themeName":"default"
-	}
-}
-
-
-{
-	"data": {
-		"ID":16,
-		"createdAt":"2019-11-01T00:20:03Z",
-		"updatedAt":"2019-11-01T00:22:13Z",
-		"deletedAt":null,
-		"username":"dono@dono.com",
-		"email":"dono@dono.com",
-		"firstName":"",
-		"lastName":"",
-		"password":"",
-		"token":""
-	},
-	"message":"success",
-	"status":true
-}
+Sunday:
+    Implement Programmable Banking Routes (done-ish)
+    Learn React
+    - finish login
+    - user registration
+    - list transactions

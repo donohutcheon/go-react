@@ -3,7 +3,6 @@ package models
 import (
 	"log"
 
-	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/datalayer"
 )
 
@@ -11,7 +10,7 @@ type Contact struct {
 	datalayer.Model
 	Name      string `json:"name"`
 	Phone     string `json:"phone"`
-	UserID    int64  `json:"user_id"` //The user that this contact belongs to
+	UserID    int64  `json:"user_id"`
 	dataLayer datalayer.DataLayer
 }
 
@@ -21,7 +20,7 @@ func NewContact(dataLayer *datalayer.DataLayer) *Contact {
 	return contact
 }
 
-func (c *Contact) convert(contact datalayer.Contact) {
+func (c *Contact) convert(contact *datalayer.Contact) {
 	c.ID = contact.ID
 	c.CreatedAt = contact.CreatedAt
 	c.UpdatedAt = contact.UpdatedAt
@@ -31,27 +30,28 @@ func (c *Contact) convert(contact datalayer.Contact) {
 }
 
 // TODO: return errors
-func (c *Contact) validate() (response.Response, bool) {
+func (c *Contact) validate() error {
 	if c.Name == "" {
-		return response.New(false, "Contact name should be on the payload"), false
+		return ErrValidationName
 	}
 
 	if c.Phone == "" {
-		return response.New(false, "Phone number should be on the payload"), false
+		return ErrValidationPhone
 	}
 
 	if c.UserID <= 0 {
-		return response.New(false, "User is not recognized"), false
+		return ErrUserDoesNotExist
 	}
 
 	//All the required parameters are present
-	return response.New(true, "success"), true
+	return nil
 }
 
-func (c *Contact) Create() (response.Response, error) {
+func (c *Contact) Create() (*Contact, error) {
 	// TODO: c.Validate() to return an error
-	if resp, ok := c.validate(); !ok {
-		return resp, nil
+	err := c.validate()
+	if err != nil {
+		return nil, err
 	}
 
 	dl := c.dataLayer
@@ -62,18 +62,13 @@ func (c *Contact) Create() (response.Response, error) {
 		return nil, err
 	}
 
-	contact, err := dl.GetContactByID(id)
+	dbContact, err := dl.GetContactByID(id)
 	if err != nil {
 		return nil, err
 	}
+	c.convert(dbContact)
 
-	resp := response.New(true, "success")
-	err = resp.Set("contact", contact)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+	return c, nil
 }
 
 func (c *Contact) GetContact(id int64) (*Contact, error) {
@@ -84,7 +79,7 @@ func (c *Contact) GetContact(id int64) (*Contact, error) {
 	}
 
 	contact := new(Contact)
-	contact.convert(*dbContact)
+	contact.convert(dbContact)
 
 	return contact, nil
 }
@@ -102,7 +97,7 @@ func (c *Contact) GetContacts(userID int64) ([]*Contact, error) {
 
 	for _, dbContact := range dbContacts {
 		contact := new(Contact)
-		contact.convert(*dbContact)
+		contact.convert(dbContact)
 		contacts = append(contacts, contact)
 	}
 

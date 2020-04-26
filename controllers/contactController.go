@@ -2,14 +2,12 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/donohutcheon/gowebserver/controllers/errors"
-	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
-
 	"net/http"
 
+	"github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
-
+	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/models"
 )
 
@@ -26,19 +24,22 @@ func CreateContact(w http.ResponseWriter, r *http.Request, logger *log.Logger, d
 	}
 
 	contact.UserID = user
-	resp, err := contact.Create()
+	data, err := contact.Create()
 	if err != nil {
 		errors.WriteError(w, err)
 		return err
 	}
+
+	resp := response.New(true, "success")
+	resp.Set("data", data)
 	resp.Respond(w)
 
 	return nil
 }
 
-func GetContactsFor (w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func GetContactsFor(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
 	contact := models.NewContact(&dataLayer)
-	id := r.Context().Value("user").(int64)
+	id := r.Context().Value("userID").(int64)
 	data, err := contact.GetContacts(id)
 	if err == datalayer.ErrNoData {
 		return errors.Wrap("User not found", http.StatusNotFound, err)
@@ -47,11 +48,7 @@ func GetContactsFor (w http.ResponseWriter, r *http.Request, logger *log.Logger,
 	}
 
 	resp := response.New(true, "success")
-	err = resp.Set("data", data)
-	if err != nil {
-		errors.WriteError(w, err)
-		return err
-	}
+	resp.Set("data", data)
 
 	resp.Respond(w)
 

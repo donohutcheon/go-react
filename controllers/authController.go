@@ -2,12 +2,13 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
 	"net/http"
 
 	"github.com/donohutcheon/gowebserver/app"
+	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/controllers/errors"
+	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/models"
 )
 
@@ -22,21 +23,24 @@ func Authenticate(w http.ResponseWriter, r *http.Request, logger *log.Logger, da
 		return nil
 	}
 
-	account := models.NewAccount(dataLayer)
-	err := json.NewDecoder(r.Body).Decode(account)
+	user := models.NewUser(dataLayer)
+	err := json.NewDecoder(r.Body).Decode(user)
 	if err != nil {
 		err = errors.Wrap("Invalid request format", http.StatusBadRequest, err)
 		errors.WriteError(w, err, http.StatusBadRequest)
 		return err
 	}
 
-	resp, err := account.Login(account.Email, account.Password)
+	data, err := user.Login(user.Email, user.Password)
 	if err != nil {
 		errors.WriteError(w, err)
 		return err
 	}
 
+	resp := response.New(true, "Logged In")
+	resp["token"] = data
 	resp.Respond(w)
+
 	return nil
 }
 
@@ -63,12 +67,15 @@ func RefreshToken(w http.ResponseWriter, r *http.Request, logger *log.Logger, da
 		return err
 	}
 
-	resp, err := app.RefreshToken(refreshTokenReq.RefreshToken)
+	data, err := app.RefreshToken(refreshTokenReq.RefreshToken)
 	if err != nil {
 		errors.WriteError(w, err)
 		return err
 	}
 
+	resp := response.New(true, "Tokens refreshed")
+	resp.Set("token", data)
 	resp.Respond(w)
+
 	return nil
 }

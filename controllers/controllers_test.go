@@ -2,28 +2,40 @@ package controllers_test
 
 import (
 	"log"
-	"net/http"
-	"net/http/httptest"
+	"net"
 	"os"
 	"testing"
 
 	"github.com/donohutcheon/gowebserver/datalayer/mockdatalayer"
 	"github.com/donohutcheon/gowebserver/routes"
+	"github.com/donohutcheon/gowebserver/server"
+	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/require"
 )
 
-func setup(t *testing.T, route string, handlerFunc routes.HandlerFunc) (string, func()) {
-	mux := http.NewServeMux()
-	server := httptest.NewServer(mux)
+func setup(t *testing.T) (string, *mockdatalayer.MockDataLayer) {
 	logger := log.New(os.Stdout, "microservice", log.LstdFlags|log.Lshortfile)
+
 	mockDataLayer := mockdatalayer.New()
-	err := mockDataLayer.LoadAccountTestData("testdata/accounts.json")
+	err := mockDataLayer.LoadUserTestData("testdata/users.json")
 	require.NoError(t, err)
 	err = mockDataLayer.LoadContactTestData("testdata/contacts.json")
 	require.NoError(t, err)
+
 	h := routes.NewHandlers(logger, mockDataLayer)
-	mux.HandleFunc(route, h.WrapHandlerFunc(handlerFunc))
-	return server.URL, func() {
-		defer server.Close()
-	}
+	router := mux.NewRouter()
+	h.SetupRoutes(router)
+
+	srv := server.New(router, "", "0")
+	l, err := net.Listen("tcp", ":0")
+	require.NoError(t, err)
+
+	go func() {
+		err := srv.Serve(l)
+		require.NoError(t, err)
+	} ()
+
+	url := "http://" + l.Addr().String()
+
+	return url, mockDataLayer
 }

@@ -24,14 +24,14 @@ type JSONWebToken struct {
 }
 
 type RefreshJWTReq struct {
-	GrantType    string `json:"grant_type" sql:"-"`
-	RefreshToken string `json:"refresh_token" sql:"-"`
+	GrantType    string `json:"grantType" sql:"-"`
+	RefreshToken string `json:"refreshToken" sql:"-"`
 }
 
 type TokenResponse struct {
-	ExpiresIn int64 `json:"expires_in"`
-	AccessToken string  `json:"access_token" sql:"-"`
-	RefreshToken string  `json:"refresh_token" sql:"-"`
+	ExpiresIn int64 `json:"expiresIn"`
+	AccessToken string  `json:"accessToken" sql:"-"`
+	RefreshToken string  `json:"refreshToken" sql:"-"`
 }
 
 func JwtAuthentication (next http.Handler, logger *log.Logger, dataLayer datalayer.DataLayer) http.Handler {
@@ -113,21 +113,21 @@ func JwtAuthentication (next http.Handler, logger *log.Logger, dataLayer datalay
 		}
 
 		// TODO: Example, remove
-		/*account, err := dataLayer.GetAccountByID(tk.UserID)
+		/*user, err := dataLayer.GetUserByID(tk.UserID)
 		if err != nil {
 			log.Println(err.Error())
 		}
-		log.Print(account)*/
+		log.Print(user)*/
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
 		fmt.Printf("User %d", tk.UserID) //Useful for monitoring
-		ctx := context.WithValue(r.Context(), "user", tk.UserID)
+		ctx := context.WithValue(r.Context(), "userID", tk.UserID)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r) //proceed in the middleware chain!
 	})
 }
 
-func CreateToken(userID int64) (TokenResponse, error){
+func CreateToken(userID int64) (*TokenResponse, error){
 	token := new(TokenResponse)
 	now := time.Now()
 	epochSecs := now.Unix()
@@ -156,10 +156,10 @@ func CreateToken(userID int64) (TokenResponse, error){
 	refreshTokenString, _ := signedRefreshToken.SignedString([]byte(os.Getenv("token_password")))
 	token.RefreshToken = refreshTokenString
 
-	return *token, nil
+	return token, nil
 }
 
-func RefreshToken(rawToken string) (response.Response, error) {
+func RefreshToken(rawToken string) (*TokenResponse, error) {
 	tk := new(JSONWebToken)
 
 	token, err := jwt.ParseWithClaims(rawToken, tk, func(token *jwt.Token) (interface{}, error) {
@@ -176,14 +176,10 @@ func RefreshToken(rawToken string) (response.Response, error) {
 	fmt.Printf("UserID %d", tk.UserID)
 
 	//Create JWT token
-	var tokenResp TokenResponse
-	tokenResp, err = CreateToken(tk.UserID)
+	tokenResp, err := CreateToken(tk.UserID)
 	if err != nil {
 		return nil, e.Wrap("token creation failed", http.StatusInternalServerError, err)
 	}
 
-	resp := response.New(true, "Tokens refreshed")
-	resp["token"] = tokenResp
-
-	return resp, nil
+	return tokenResp, nil
 }

@@ -2,41 +2,43 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/donohutcheon/gowebserver/datalayer"
 	"log"
 	"net/http"
 
 	"github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/models"
 )
 
-func CreateAccount (w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func CreateUser(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
 	if r.Method == http.MethodOptions {
 		return nil
 	}
 
-	account := new(models.Account)
-	err := json.NewDecoder(r.Body).Decode(account) //decode the request body into struct and failed if any error occur
+	user := models.NewUser(dataLayer)
+	err := json.NewDecoder(r.Body).Decode(user) //decode the request body into struct and failed if any error occur
 	if err != nil {
 		err = errors.Wrap("Invalid request", http.StatusBadRequest, err)
 		errors.WriteError(w, err)
 		return err
 	}
 
-	resp, err := account.Create() //Create account
+	data, err := user.Create() //Create user
 	if err != nil {
 		errors.WriteError(w, err)
 		return err
 	}
 
+	resp := response.New(true, "User has been created")
+	resp.Set("user", data)
 	resp.Respond(w)
 
 	return nil
 }
 
 // TODO: Move into usersController
-func GetCurrentAccount(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func GetCurrentUser(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -47,17 +49,19 @@ func GetCurrentAccount(w http.ResponseWriter, r *http.Request, logger *log.Logge
 	if r.Method == http.MethodOptions {
 		return nil
 	}
-	id := r.Context().Value("user").(int64)
+	id := r.Context().Value("userID").(int64)
 
-	account := models.NewAccount(dataLayer)
-	err := account.GetAccount(id)
+	user := models.NewUser(dataLayer)
+	err := user.GetUser(id)
 	if err != nil {
 		errors.WriteError(w, err)
 		return err
 	}
 
+	user.Password = ""
+
 	resp := response.New(true, "success")
-	resp.Set("data", account)
+	resp.Set("user", user)
 
 	err = resp.Respond(w)
 	if err != nil {

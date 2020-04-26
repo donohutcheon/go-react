@@ -1,7 +1,7 @@
 CREATE DATABASE `gocontacts`;
 USE `gocontacts`;
 
-CREATE TABLE `accounts` (
+CREATE TABLE `users` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
@@ -11,7 +11,8 @@ CREATE TABLE `accounts` (
   `password` varchar(255) DEFAULT NULL,
   `role` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_accounts_deleted_at` (`deleted_at`)
+  KEY `idx_users_email` (`email`),
+  KEY `idx_users_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=latin1;
 
 CREATE TABLE `contacts` (
@@ -24,7 +25,30 @@ CREATE TABLE `contacts` (
   `user_id` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY (user_id)
-        REFERENCES accounts(id)
+        REFERENCES users(id)
         ON DELETE CASCADE,
+  KEY `idx_contacts_user_id` (`user_id`),
   KEY `idx_contacts_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `card_transactions` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `datetime` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `amount` BIGINT NOT NULL,
+  `currency_scale` TINYINT NOT NULL,
+  `currency_code` varchar(255) NOT NULL,
+  `reference` varchar(255) NOT NULL,
+  `merchant_name` varchar(255) NOT NULL,
+  `merchant_city` varchar(255) NOT NULL,
+  `merchant_country_code` varchar(255) NOT NULL,
+  `merchant_country_name` varchar(255) NOT NULL,
+  `merchant_category_code` varchar(255) NOT NULL,
+  `merchant_category_name` varchar(255) NOT NULL,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+  KEY `idx_contacts_user_id` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;

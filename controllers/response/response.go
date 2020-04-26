@@ -19,9 +19,8 @@ func (m Response) SetResponse(status bool, message string) {
 	m["message"] = message
 }
 
-func (m Response) Set(key string, value interface{}) error {
+func (m Response) Set(key string, value interface{}) {
 	m[key] = value
-	return nil
 }
 
 func (m Response) SetString(key string, value string) {

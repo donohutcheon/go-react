@@ -7,19 +7,17 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/donohutcheon/gowebserver/controllers"
 	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetStatus(t *testing.T) {
-	route := "/status"
-	url, closer := setup(t, route, controllers.Status)
-	defer closer()
+	url, _ := setup(t)
+
 	ctx := context.Background()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url + route, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url + "/status", nil)
 	assert.NoError(t, err)
 
 	cl := new(http.Client)
