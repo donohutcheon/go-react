@@ -83,7 +83,7 @@ func createCon(username string, password string, dbHost string, dbPort string, d
 }
 
 func tryConnectHerokuJawsDB() (*sqlx.DB, error, bool){
-	dbURI := os.Getenv("JAWSDB_MARIA_URL")
+	dbURI := os.Getenv("JAWSDB_MARIA_URL") + "?parseTime=true"
 	if len(dbURI) == 0 {
 		return nil, nil, false
 	}
