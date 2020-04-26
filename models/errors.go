@@ -11,7 +11,7 @@ var (
 	ErrValidationEmail = e.NewError("Email address is required", http.StatusBadRequest)
 	ErrValidationPassword = e.NewError("Password is required", http.StatusBadRequest)
 	ErrUserDoesNotExist = e.NewError("User does not exist", http.StatusForbidden)
-	ErrEmailExists = e.NewError("Email address already in use by another user", http.StatusBadRequest)
+	ErrEmailExists = e.NewError("Email address already exists", http.StatusBadRequest)
 
 	ErrValidationFailed = e.NewError("Invalid request, validation failed", http.StatusBadRequest)
 

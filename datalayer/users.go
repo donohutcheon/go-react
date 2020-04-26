@@ -9,14 +9,16 @@ type User struct {
 	Email    sql.NullString `db:"email"`
 	Password sql.NullString `db:"password"`
 	Role     sql.NullString `db:"role"`
+	LoggedOutAt JsonNullTime `db:"logged_out_at"`
 }
 
 func (p *PersistenceDataLayer) GetUserByEmail(email string) (*User, error) {
 	user := new(User)
-	row := p.GetConn().QueryRowx(`select id, email, password, role, created_at, updated_at, deleted_at from users where email = ?`,
-		email)
+	row := p.GetConn().QueryRowx(`select * from users where email = ?`, email)
 	err := row.StructScan(user)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		return nil, ErrNoData
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -25,9 +27,11 @@ func (p *PersistenceDataLayer) GetUserByEmail(email string) (*User, error) {
 
 func (p *PersistenceDataLayer) GetUserByID(id int64) (*User, error) {
 	user := new(User)
-	row := p.GetConn().QueryRowx(`SELECT id, email, password, role, created_at, updated_at, deleted_at FROM users WHERE id=?`, id)
+	row := p.GetConn().QueryRowx(`SELECT * FROM users WHERE id=?`, id)
 	err := row.StructScan(user)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		return nil, ErrNoData
+	} else if err != nil {
 		return nil, err
 	}
 

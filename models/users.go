@@ -24,16 +24,17 @@ type Settings struct {
 type User struct {
 	datalayer.Model
 	dataLayer    datalayer.DataLayer
-	Email        string   `json:"email"`
-	FirstName    string   `json:"firstName"`
-	Surname      string   `json:"surname"`
-	Age          int      `json:"age"`
-	Address      string   `json:"address"`
-	Roles        []string `json:"roles"`
-	Settings     Settings `json:"settings"`
-	Password     string   `json:"password,omitempty"`
-	AccessToken  string   `json:"accessToken,omitempty" sql:"-"`
-	RefreshToken string   `json:"refreshToken,omitempty" sql:"-"`
+	Email        string    `json:"email"`
+	FirstName    string    `json:"firstName"`
+	Surname      string    `json:"surname"`
+	Age          int       `json:"age"`
+	Address      string    `json:"address"`
+	Roles        []string  `json:"roles"`
+	Settings     Settings  `json:"settings"`
+	Password     string    `json:"password,omitempty"`
+	AccessToken  string    `json:"accessToken,omitempty" sql:"-"`
+	RefreshToken string    `json:"refreshToken,omitempty" sql:"-"`
+	LoggedOutAt  time.Time `json:"loggedOutAt,omitempty"`
 }
 
 func NewUser(dataLayer datalayer.DataLayer) *User {
@@ -72,7 +73,7 @@ func (u *User) validate() error {
 	//check for errors and duplicate emails
 	dl := u.dataLayer
 	_, err := dl.GetUserByEmail(u.Email)
-	if err != datalayer.ErrNoData {
+	if err != sql.ErrNoRows {
 		return ErrEmailExists
 	}
 
