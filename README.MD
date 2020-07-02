@@ -73,6 +73,11 @@ curl -X GET -H "Authorization: Bearer ${access_token}" -H 'Content-Type: applica
 
 #### Original blog post https://medium.com/@adigunhammedolalekan/build-and-deploy-a-secure-rest-api-with-go-postgresql-jwt-and-gorm-6fadf3da505b
 
+##Postgres
+```
+docker run -it --network host --rm postgres bash
+```
+
 ## MariaDB CLI
 ```
 docker run -it --network host --rm mariadb mysql -hdonovanh -uroot -pcharka
