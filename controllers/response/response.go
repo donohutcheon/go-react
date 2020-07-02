@@ -2,6 +2,7 @@ package response
 
 import (
 	"encoding/json"
+	"github.com/donohutcheon/gowebserver/controllers/response/types"
 	"net/http"
 )
 
@@ -11,6 +12,16 @@ func New(status bool, message string) Response {
 	m := make(Response)
 	m["status"] = status
 	m["message"] = message
+	return m
+}
+
+func NewWithFieldsList(status bool, message string, fields []types.ErrorField) Response {
+	m := make(Response)
+	m["status"] = status
+	m["message"] = message
+	if len(fields) > 0 {
+		m["fields"] = fields
+	}
 	return m
 }
 

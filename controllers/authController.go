@@ -2,17 +2,16 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
-	"net/http"
-
 	"github.com/donohutcheon/gowebserver/app"
-	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/controllers/errors"
-	"github.com/donohutcheon/gowebserver/datalayer"
+	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/state"
+	"net/http"
 )
 
-func Authenticate(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+//func Authenticate(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func Authenticate(w http.ResponseWriter, r *http.Request, state *state.ServerState) error {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -23,7 +22,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request, logger *log.Logger, da
 		return nil
 	}
 
-	user := models.NewUser(dataLayer)
+	user := models.NewUser(state)
 	err := json.NewDecoder(r.Body).Decode(user)
 	if err != nil {
 		err = errors.Wrap("Invalid request format", http.StatusBadRequest, err)
@@ -44,7 +43,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request, logger *log.Logger, da
 	return nil
 }
 
-func RefreshToken(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func RefreshToken(w http.ResponseWriter, r *http.Request, state *state.ServerState) error {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")
 	w.Header().Set("X-XSS-Protection", "1; mode=block")
@@ -63,7 +62,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request, logger *log.Logger, da
 	}
 
 	if refreshTokenReq.GrantType != "refresh_token" {
-		errors.WriteError(w, errors.NewError("grant type not refresh_token", http.StatusBadRequest))
+		errors.WriteError(w, errors.NewError("grant type not refresh_token", nil, http.StatusBadRequest))
 		return err
 	}
 

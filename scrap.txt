@@ -1,13 +1,15 @@
 TODO:
 
 Saturday:
-    Finish tests (done-ish)
-    Get Heroku working (not done)
+    Finish tests (done)
+    Get Heroku working (done)
     Implement logout (not-done)
 
 Sunday:
-    Implement Programmable Banking Routes (done-ish)
+    Implement Programmable Banking Routes (done)
     Learn React
     - finish login
     - user registration
     - list transactions
+
+UNCONFIRMED -> CONFIRMED

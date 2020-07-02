@@ -11,6 +11,8 @@ import (
 
 	"github.com/donohutcheon/gowebserver/app"
 	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/state"
+	"github.com/donohutcheon/gowebserver/state/facotory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,24 +25,24 @@ type AuthResponse struct {
 
 func TestAuthenticate(t *testing.T) {
 	tests := []struct {
-		name       string
-		request    []byte
-		expResp    AuthResponse
-		expStatus  int
+		name          string
+		request       []byte
+		expResp       AuthResponse
+		expStatus     int
 		expTokenValid bool
 	}{
 		{
-			name: "Success",
+			name:    "Success",
 			request: []byte(`{"email": "subzero@dreamrealm.com", "password": "secret"}`),
 			expResp: AuthResponse{
 				Message: "Logged In",
 				Status:  true,
 			},
-			expStatus: http.StatusOK,
+			expStatus:     http.StatusOK,
 			expTokenValid: true,
 		},
 		{
-			name: "Non-existent User",
+			name:    "Non-existent User",
 			request: []byte(`{"email": "skeletor@eternia.com", "password": "secret"}`),
 			expResp: AuthResponse{
 				Message: "Invalid login credentials",
@@ -49,7 +51,7 @@ func TestAuthenticate(t *testing.T) {
 			expStatus: http.StatusForbidden,
 		},
 		{
-			name: "Wrong Password",
+			name:    "Wrong Password",
 			request: []byte(`{"email": "subzero@dreamrealm.com", "password": "wrong"}`),
 			expResp: AuthResponse{
 				Message: "Invalid login credentials",
@@ -58,7 +60,7 @@ func TestAuthenticate(t *testing.T) {
 			expStatus: http.StatusForbidden,
 		},
 		{
-			name: "Garbage Request",
+			name:    "Garbage Request",
 			request: []byte(`garbage`),
 			expResp: AuthResponse{
 				Message: "Invalid request format",
@@ -68,13 +70,15 @@ func TestAuthenticate(t *testing.T) {
 		},
 	}
 
-	url, _ := setup(t)
-	ctx := context.Background()
-	now := time.Now()
+	callbacks := state.NewMockCallbacks(mailCallback)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url + "/auth/login", nil)
+			now := time.Now()
+			state := facotory.NewForTesting(t, callbacks)
+			ctx := state.Context
+
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, state.URL+"/auth/login", nil)
 			assert.NoError(t, err)
 
 			req.Body = ioutil.NopCloser(bytes.NewReader(test.request))
@@ -104,19 +108,20 @@ func TestAuthenticate(t *testing.T) {
 }
 
 type AuthParameters struct {
-	authRequest models.User
+	authRequest   models.User
 	expHTTPStatus int
-	expLoginResp AuthResponse
+	expLoginResp  AuthResponse
 }
 
 type RefreshTokenParameters struct {
-	request app.RefreshJWTReq
+	request       app.RefreshJWTReq
 	expHTTPStatus int
-	expResponse AuthResponse
+	expResponse   AuthResponse
 }
 
 func login(t *testing.T, ctx context.Context, cl *http.Client, url string, params AuthParameters) *AuthResponse {
 	testTime := time.Now()
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/auth/login", nil)
 	assert.NoError(t, err)
 
@@ -179,8 +184,8 @@ func refreshToken(t *testing.T, ctx context.Context, cl *http.Client, url string
 
 func TestRefreshToken(t *testing.T) {
 	tests := []struct {
-		name                        string
-		authParams              AuthParameters
+		name               string
+		authParams         AuthParameters
 		refreshTokenParams RefreshTokenParameters
 	}{
 		{
@@ -191,14 +196,14 @@ func TestRefreshToken(t *testing.T) {
 					Password: "secret",
 				},
 				expHTTPStatus: http.StatusOK,
-				expLoginResp : AuthResponse{
+				expLoginResp: AuthResponse{
 					Message: "Logged In",
 					Status:  true,
 				},
 			},
 			refreshTokenParams: RefreshTokenParameters{
 				expHTTPStatus: http.StatusOK,
-				expResponse:   AuthResponse{
+				expResponse: AuthResponse{
 					Message: "Tokens refreshed",
 					Status:  true,
 				},
@@ -211,11 +216,14 @@ func TestRefreshToken(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cl := new(http.Client)
-			url, _ := setup(t)
-			gotAuthResp := login(t, ctx, cl, url, test.authParams)
+
+			callbacks := state.NewMockCallbacks(mailCallback)
+			state := facotory.NewForTesting(t, callbacks)
+
+			gotAuthResp := login(t, ctx, cl, state.URL, test.authParams)
 			test.refreshTokenParams.request.RefreshToken = gotAuthResp.Token.RefreshToken
 			test.refreshTokenParams.request.GrantType = "refresh_token"
-			refreshToken(t, ctx, cl, url, test.refreshTokenParams)
+			refreshToken(t, ctx, cl, state.URL, test.refreshTokenParams)
 		})
 	}
 }

@@ -3,16 +3,17 @@ package app
 import (
 	"context"
 	"fmt"
-	"log"
+	"github.com/donohutcheon/gowebserver/state"
+	"github.com/gorilla/mux"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	e "github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
-	"github.com/donohutcheon/gowebserver/datalayer"
 )
 
 const AccessTokenLifeSpan = 600
@@ -34,44 +35,80 @@ type TokenResponse struct {
 	RefreshToken string  `json:"refreshToken" sql:"-"`
 }
 
-func JwtAuthentication (next http.Handler, logger *log.Logger, dataLayer datalayer.DataLayer) http.Handler {
+
+func isPublicRoute(path string) bool{
+	switch path {
+	case "/auth/login",
+		"/auth/refresh",
+		"/auth/sign-up",
+		"/status",
+		"/users/confirm/{nonce}":
+		return true
+	}
+	return false
+}
+
+
+func JwtAuthentication (next http.Handler, state *state.ServerState) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")
 		w.Header().Set("X-XSS-Protection", "1; mode=block")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		if r.Header.Get("Access-Control-Request-Headers") != "" {
-			w.Header().Set("Access-Control-Allow-Headers", "content-type")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 		}
-		//w.Header().Set("X-Content-Type-Options","nosniff")
-
 
 		if r.Method == http.MethodOptions {
 			next.ServeHTTP(w, r)
 			return
 		}
-		// List of endpoints that doesn't require auth
-		notAuth := []string{
-			"/auth/login",
-			"/auth/refresh",
-			"/auth/sign-up",
-			"/status",
-		}
 
 		requestPath := r.URL.Path // Current request path
 
 		//check if request does not need authentication, serve the request if it doesn't need it
-		for _, value := range notAuth {
+		var isPublicMatch bool
+		err := state.Router.Walk(func (route *mux.Route, router *mux.Router, ancestors []*mux.Route) error {
+			pathTemplate, err := route.GetPathTemplate()
+			if err != nil {
+				return err
+			}
+
+			pathRegexp, err := route.GetPathRegexp()
+			if err != nil {
+				return err
+			}
+			matched, err := regexp.MatchString(pathRegexp, requestPath)
+			if err != nil {
+				return err
+			}
+
+			if matched && isPublicRoute(pathTemplate) {
+				isPublicMatch = true
+				return nil
+			}
+			return nil
+		})
+		if err != nil {
+			resp := response.New(false, "Internal server error.  Routing failed")
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Header().Add("Content-Type", "application/json")
+			resp.Respond(w)
+			return
+		}
+		if isPublicMatch {
+			next.ServeHTTP(w, r)
+			return
+		}
+		/*for _, value := range notAuth {
 			if value == requestPath {
 				next.ServeHTTP(w, r)
 				return
 			}
-		}
+		}*/
 
-		//response := response.NewEmptyResponse()
-		tokenHeader := r.Header.Get("Authorization") //Grab the token from the header
-
-		if tokenHeader == "" { //Token is missing, returns with error code 403 Unauthorized
+		tokenHeader := r.Header.Get("Authorization")
+		if tokenHeader == "" {
 			resp := response.New(false, "Missing auth token")
 			w.WriteHeader(http.StatusForbidden)
 			w.Header().Add("Content-Type", "application/json")
@@ -111,13 +148,6 @@ func JwtAuthentication (next http.Handler, logger *log.Logger, dataLayer datalay
 			resp.Respond(w)
 			return
 		}
-
-		// TODO: Example, remove
-		/*user, err := dataLayer.GetUserByID(tk.UserID)
-		if err != nil {
-			log.Println(err.Error())
-		}
-		log.Print(user)*/
 
 		//Everything went well, proceed with the request and set the caller to the user retrieved from the parsed token
 		fmt.Printf("User %d", tk.UserID) //Useful for monitoring
@@ -170,7 +200,7 @@ func RefreshToken(rawToken string) (*TokenResponse, error) {
 	}
 
 	if !token.Valid { //Token is invalid, maybe not signed on this server
-		return nil, e.NewError ("token is not valid", http.StatusForbidden)
+		return nil, e.NewError("token is not valid", nil, http.StatusForbidden)
 	}
 
 	fmt.Printf("UserID %d", tk.UserID)

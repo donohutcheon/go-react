@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"log"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -9,16 +8,15 @@ import (
 
 	"github.com/donohutcheon/gowebserver/app"
 	"github.com/donohutcheon/gowebserver/controllers"
-	"github.com/donohutcheon/gowebserver/datalayer"
+	"github.com/donohutcheon/gowebserver/state"
 	"github.com/gorilla/mux"
 )
 
-type HandlerFunc func(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error
-type MiddlewareFunc func(next http.Handler, logger *log.Logger, dataLayer datalayer.DataLayer) http.Handler
+type HandlerFunc func(w http.ResponseWriter, r *http.Request, handlerState *state.ServerState) error
+type MiddlewareFunc func(next http.Handler, state *state.ServerState) http.Handler
 
 type Handlers struct {
-	logger *log.Logger
-	dataLayer datalayer.DataLayer
+	serverState *state.ServerState
 }
 
 func getFunctionName(i interface{}) string {
@@ -28,10 +26,12 @@ func getFunctionName(i interface{}) string {
 func (h *Handlers) WrapHandlerFunc(next HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
-		defer h.logger.Printf("request processed in %v, %s\n", getFunctionName(next), time.Now().Sub(startTime))
-		err := next(w, r, h.logger, h.dataLayer)
+		logger := h.serverState.Logger
+		//TODO: Format time
+		defer logger.Printf("request processed in %v, %v\n", getFunctionName(next),  time.Now().Sub(startTime))
+		err := next(w, r, h.serverState)
 		if err != nil {
-			h.logger.Printf("Controller error: %v", err)
+			logger.Printf("Controller error: %v", err)
 		}
 	}
 }
@@ -39,9 +39,11 @@ func (h *Handlers) WrapHandlerFunc(next HandlerFunc) http.HandlerFunc {
 func (h *Handlers) WrapMiddlewareFunc(next MiddlewareFunc) mux.MiddlewareFunc {
 	return func(mwf http.Handler) http.Handler {
 		startTime := time.Now()
-		defer h.logger.Printf("request processed in %v, %s\n", getFunctionName(next), time.Now().Sub(startTime))
+		logger := h.serverState.Logger
+		//TODO: Format time
+		defer logger.Printf("request processed in %v, %v\n", getFunctionName(next), time.Now().Sub(startTime))
 
-		return next(mwf, h.logger, h.dataLayer)
+		return next(mwf, h.serverState)
 	}
 }
 
@@ -56,14 +58,14 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 	router.HandleFunc("/me/contacts", h.WrapHandlerFunc(controllers.GetContactsFor)).Methods(http.MethodGet, http.MethodOptions)
 	router.HandleFunc("/card-transactions/new", h.WrapHandlerFunc(controllers.CreateCardTransaction)).Methods(http.MethodPost, http.MethodOptions)
 	router.HandleFunc("/me/card-transactions", h.WrapHandlerFunc(controllers.GetCardTransactions)).Methods(http.MethodGet, http.MethodOptions)
+	router.HandleFunc("/users/confirm/{nonce}", h.WrapHandlerFunc(controllers.ConfirmUserSignUp)).Methods(http.MethodGet, http.MethodOptions)
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(h.WrapMiddlewareFunc(app.JwtAuthentication)) //attach JWT auth middleware
 }
 
 //NewHandlers void
-func NewHandlers(logger *log.Logger, dataLayer datalayer.DataLayer) *Handlers {
+func NewHandlers(state *state.ServerState) *Handlers {
 	return &Handlers{
-		logger: logger,
-		dataLayer: dataLayer,
+		serverState: state,
 	}
 }

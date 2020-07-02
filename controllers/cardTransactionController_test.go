@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
-	"time"
-
-
 	"encoding/json"
-	"github.com/donohutcheon/gowebserver/datalayer"
-	"github.com/donohutcheon/gowebserver/models"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"net/http"
 	"testing"
+	"time"
+
+	"github.com/donohutcheon/gowebserver/datalayer"
+	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/state"
+	"github.com/donohutcheon/gowebserver/state/facotory"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type CreateCardTransactionControllerResponse struct {
@@ -49,7 +50,7 @@ func TestCardTransactions(t *testing.T) {
 		name                        string
 		authParameters              AuthParameters
 		createCardTransactionParams CreateCardTransactionParameters
-		getCardTransactionParams GetCardTransactionParameters
+		getCardTransactionParams    GetCardTransactionParameters
 	}{
 		{
 			name: "Golden",
@@ -59,7 +60,7 @@ func TestCardTransactions(t *testing.T) {
 					Password: "secret",
 				},
 				expHTTPStatus: http.StatusOK,
-				expLoginResp : AuthResponse{
+				expLoginResp: AuthResponse{
 					Message: "Logged In",
 					Status:  true,
 				},
@@ -80,6 +81,7 @@ func TestCardTransactions(t *testing.T) {
 					MerchantCountryName:  "South Africa",
 					MerchantCategoryCode: "contraband",
 					MerchantCategoryName: "Contraband",
+					UserID:               1,
 				},
 				expResponse: CreateCardTransactionControllerResponse{
 					Message: "success",
@@ -153,7 +155,7 @@ func TestCardTransactions(t *testing.T) {
 					Password: "secret",
 				},
 				expHTTPStatus: http.StatusOK,
-				expLoginResp : AuthResponse{
+				expLoginResp: AuthResponse{
 					Message: "Logged In",
 					Status:  true,
 				},
@@ -163,8 +165,8 @@ func TestCardTransactions(t *testing.T) {
 			},
 			getCardTransactionParams: GetCardTransactionParameters{
 				expResponse: GetCardTransactionControllerResponse{
-					Message: "success",
-					Status:  true,
+					Message:          "success",
+					Status:           true,
 					CardTransactions: []models.CardTransaction{},
 				},
 				expHTTPStatus: http.StatusOK,
@@ -172,15 +174,18 @@ func TestCardTransactions(t *testing.T) {
 		},
 	}
 
-	ctx := context.Background()
-
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cl := new(http.Client)
-			url, _ := setup(t)
-			gotAuthResp := login(t, ctx, cl, url, test.authParameters)
-			createCardTransaction(t, ctx, cl, url, gotAuthResp, &test.createCardTransactionParams)
-			getCardTransactions(t, ctx, cl, url, gotAuthResp, &test.getCardTransactionParams)
+
+			callbacks := state.NewMockCallbacks(mailCallback)
+
+			state := facotory.NewForTesting(t, callbacks)
+			ctx := state.Context
+
+			gotAuthResp := login(t, ctx, cl, state.URL, test.authParameters)
+			createCardTransaction(t, ctx, cl, state.URL, gotAuthResp, &test.createCardTransactionParams)
+			getCardTransactions(t, ctx, cl, state.URL, gotAuthResp, &test.getCardTransactionParams)
 		})
 	}
 }
@@ -193,7 +198,7 @@ func createCardTransaction(t *testing.T, ctx context.Context, cl *http.Client,
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/card-transactions/new", nil)
 	assert.NoError(t, err)
-	req.Header.Add("Authorization", "Bearer " + auth.Token.AccessToken)
+	req.Header.Add("Authorization", "Bearer "+auth.Token.AccessToken)
 
 	b, err := json.Marshal(params.request)
 	require.NoError(t, err)
@@ -222,7 +227,7 @@ func getCardTransactions(t *testing.T, ctx context.Context, cl *http.Client,
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+"/me/card-transactions", nil)
 	assert.NoError(t, err)
-	req.Header.Add("Authorization", "Bearer " + auth.Token.AccessToken)
+	req.Header.Add("Authorization", "Bearer "+auth.Token.AccessToken)
 
 	res, err := cl.Do(req)
 	require.NoError(t, err)

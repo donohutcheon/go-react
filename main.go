@@ -1,14 +1,13 @@
 package main
 
 import (
+	"github.com/donohutcheon/gowebserver/state"
+	"github.com/donohutcheon/gowebserver/state/facotory"
+	_ "github.com/heroku/x/hmetrics/onload"
+	"github.com/joho/godotenv"
 	"log"
 	"os"
-
-	"github.com/donohutcheon/gowebserver/datalayer"
-	"github.com/donohutcheon/gowebserver/routes"
-	"github.com/donohutcheon/gowebserver/server"
-	"github.com/gorilla/mux"
-	_ "github.com/heroku/x/hmetrics/onload"
+	"sync"
 )
 
 var (
@@ -17,24 +16,32 @@ var (
 	//KeyFile environment variable for KeyFile
 	KeyFile = os.Getenv("KEY_FILE")
 	//ServiceAddress address to listen on
-	BindAddress = os.Getenv("BIND_ADDRESS")
-	Port        = os.Getenv("PORT")
+
 )
 
 func main() {
-	logger := log.New(os.Stdout, "microservice", log.LstdFlags|log.Lshortfile)
-	dataLayer, err := datalayer.New()
-	h := routes.NewHandlers(logger, dataLayer)
+	logger := log.New(os.Stdout, "server ", log.LstdFlags|log.Lshortfile)
 
-	router := mux.NewRouter()
-	h.SetupRoutes(router)
-
-	logger.Printf("Server Binding to %s:%s", BindAddress, Port)
-	srv := server.New(router, BindAddress, Port)
-	// TODO: Put back in for TLS
-	/*err := srv.ListenAndServeTLS(CertFile, KeyFile)*/
-	err = srv.ListenAndServe() //Launch the app, visit localhost:8000/api
+	// Load environment from .env file for development.
+	err := godotenv.Load()
 	if err != nil {
-		logger.Fatalf("Server failed to start %s", err.Error())
+		logger.Printf("Could not load environment files. %s", err.Error())
 	}
+
+	mode := os.Getenv("ENVIRONMENT")
+
+	mainThreadWG := new(sync.WaitGroup)
+	var serverState *state.ServerState
+	if mode == "prod" {
+		serverState, err = facotory.NewForProduction(logger, mainThreadWG)
+	} else {
+		serverState, err = facotory.NewForStaging(logger, mainThreadWG)
+	}
+	if err != nil {
+		logger.Printf("failed to initialize production state %s", err.Error())
+		return
+	}
+
+	mainThreadWG.Wait()
+	serverState.Logger.Printf("graceful shutdown")
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/state"
+	"github.com/donohutcheon/gowebserver/state/facotory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,92 +25,131 @@ type UserControllerResponse struct {
 	User    models.User `json:"user"`
 }
 
+type GetCurrentUserParameters struct {
+	skip          bool
+	expResponse   UserControllerResponse
+	expHTTPStatus int
+}
+
+type CreateUserParameters struct {
+	skip          bool
+	createUserReq models.User
+	expResponse   UserControllerResponse
+	expHTTPStatus int
+}
+
+func getCurrentUser(t *testing.T, ctx context.Context, cl *http.Client,
+	url string, auth *AuthResponse, params *GetCurrentUserParameters) *UserControllerResponse {
+	if params.skip {
+		return nil
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url + "/users/current", nil)
+	assert.NoError(t, err)
+	req.Header.Add("Authorization", "Bearer " + auth.Token.AccessToken)
+	res, err := cl.Do(req)
+	require.NoError(t, err)
+
+	body, err := ioutil.ReadAll(res.Body)
+	gotResp := new(UserControllerResponse)
+	err = json.Unmarshal(body, gotResp)
+	require.NoError(t, err)
+
+	assert.Equal(t, params.expHTTPStatus, res.StatusCode)
+	assert.Equal(t, params.expResponse.Status, gotResp.Status)
+	assert.Equal(t, params.expResponse.Message, gotResp.Message)
+	assert.Equal(t, params.expResponse.User.Email, gotResp.User.Email)
+
+	return gotResp
+}
+
+func createUser(t *testing.T, ctx context.Context, cl *http.Client,
+	url string, params *CreateUserParameters) *UserControllerResponse {
+	if params.skip {
+		return nil
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url + "/auth/sign-up", nil)
+
+	assert.NoError(t, err)
+
+	b, err := json.Marshal(params.createUserReq)
+	require.NoError(t, err)
+
+	req.Body = ioutil.NopCloser(bytes.NewReader(b))
+	defer req.Body.Close()
+
+	res, err := cl.Do(req)
+	require.NoError(t, err)
+
+	body, err := ioutil.ReadAll(res.Body)
+	gotCreateUserResp := new(UserControllerResponse)
+	err = json.Unmarshal(body, gotCreateUserResp)
+	require.NoError(t, err)
+	assert.Equal(t, params.expHTTPStatus, res.StatusCode)
+	assert.Equal(t, params.expResponse.Message, gotCreateUserResp.Message)
+	assert.Equal(t, params.expResponse.Status, gotCreateUserResp.Status)
+	assert.Equal(t, params.expResponse.User.Email, gotCreateUserResp.User.Email)
+	return gotCreateUserResp
+}
+
 func TestGetCurrentUser(t *testing.T) {
 	tests := []struct {
-		name          string
-		authRequest   []byte
-		expLoginResp  AuthResponse
-		expResp       UserControllerResponse
-		expStatus     int
-		expTokenValid bool
+		name                 string
+		authParameters       AuthParameters
+		getCurrentUserParams GetCurrentUserParameters
 	}{
 		{
 			name: "Success",
-			authRequest: []byte(`{"email": "subzero@dreamrealm.com", "password": "secret"}`),
-			expLoginResp : AuthResponse{
-				Message: "Logged In",
-				Status:  true,
-			},
-			expResp: UserControllerResponse{
-				Message: "success",
-				Status:  true,
-				User: models.User{
-					Model:        datalayer.Model{
-						ID:        0,
-						CreatedAt: datalayer.JsonNullTime{
-							NullTime : sql.NullTime{
-								Time:  time.Now(),
-								Valid: true,
-							},
-						},
-					},
-					Email:        "nightwolf@earthrealm.com",
-					Roles:        []string{"ADMIN", "USER"},
-					Settings:     models.Settings{
-						ID:        0,
-						ThemeName: "default",
-					},
+			authParameters: AuthParameters{
+				authRequest: models.User{
+					Email:    "subzero@dreamrealm.com",
+					Password: "secret",
+				},
+				expHTTPStatus: http.StatusOK,
+				expLoginResp: AuthResponse{
+					Message: "Logged In",
+					Status:  true,
 				},
 			},
-			expStatus: http.StatusOK,
-			expTokenValid: true,
+			getCurrentUserParams: GetCurrentUserParameters{
+				expResponse: UserControllerResponse{
+					Message: "success",
+					Status:  true,
+					User: models.User{
+						Model: datalayer.Model{
+							ID: 0,
+							CreatedAt: datalayer.JsonNullTime{
+								NullTime: sql.NullTime{
+									Time:  time.Now(),
+									Valid: true,
+								},
+							},
+						},
+						Email:    "subzero@dreamrealm.com",
+						Password: "$2a$10$NkTUeL6hkTRZ7M13tKYLqOmg7pAQaGPdpch9b5UoTSoO77MHjbPjm",
+						Roles:    []string{"ADMIN", "USER"},
+						Settings: models.Settings{
+							ID:        0,
+							ThemeName: "default",
+						},
+					},
+				},
+				expHTTPStatus: http.StatusOK,
+			},
 		},
 	}
 
-	url, _ := setup(t)
-	ctx := context.Background()
-	now := time.Now()
+	callbacks := state.NewMockCallbacks(mailCallback)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cl := new(http.Client)
-
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/auth/login", nil)
-			assert.NoError(t, err)
-			req.Body = ioutil.NopCloser(bytes.NewReader(test.authRequest))
-			defer req.Body.Close()
-			res, err := cl.Do(req)
-			require.NoError(t, err)
-
-			body, err := ioutil.ReadAll(res.Body)
-			gotAuthResp := new(AuthResponse)
-			err = json.Unmarshal(body, gotAuthResp)
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expStatus, res.StatusCode)
-			assert.Equal(t, test.expLoginResp.Message, gotAuthResp.Message)
-			assert.Equal(t, test.expLoginResp.Status, gotAuthResp.Status)
-			if test.expTokenValid {
-				require.NotEmpty(t, gotAuthResp.Token.AccessToken)
-				require.NotEmpty(t, gotAuthResp.Token.RefreshToken)
-				require.Less(t, now.Unix(), gotAuthResp.Token.ExpiresIn)
-			} else {
-				assert.Empty(t, gotAuthResp.Token)
-			}
-
-			req, err = http.NewRequestWithContext(ctx, http.MethodGet, url+"/users/current", nil)
-			assert.NoError(t, err)
-			req.Header.Add("Authorization", "Bearer "+gotAuthResp.Token.AccessToken)
-			res, err = cl.Do(req)
-			require.NoError(t, err)
-
-			body, err = ioutil.ReadAll(res.Body)
-			gotResp := new(UserControllerResponse)
-			err = json.Unmarshal(body, gotResp)
-			require.NoError(t, err)
-
-			assert.Equal(t, test.expResp.Status, gotResp.Status)
-			assert.Equal(t, test.expResp.Message, gotResp.Message)
+			//now := time.Now()
+			state := facotory.NewForTesting(t, callbacks)
+			ctx := state.Context
+			gotAuthResp := login(t, ctx, cl, state.URL, test.authParameters)
+			getCurrentUser(t, ctx, cl, state.URL, gotAuthResp, &test.getCurrentUserParams)
 		})
 	}
 }
@@ -116,9 +158,7 @@ func TestCreateUser(t *testing.T) {
 	tests := []struct {
 		name              string
 		authParameters    AuthParameters
-		createUserReq     models.User
-		expCreateUserResp UserControllerResponse
-		expStatus         int
+		createUserParams  CreateUserParameters
 	}{
 		{
 			name: "Golden",
@@ -133,83 +173,69 @@ func TestCreateUser(t *testing.T) {
 					Status:  true,
 				},
 			},
-			createUserReq: models.User{
-				Email:     "jade@edenia.com",
-				Password:  "secret",
-			},
-			expCreateUserResp : UserControllerResponse{
-				Message: "User has been created",
-				Status:  true,
-				User: models.User{
-					Email: "jade@edenia.com",
+			createUserParams: CreateUserParameters{
+				createUserReq: models.User{
+					Email:        "jade@edenia.com",
+					Password:     "secret",
 				},
+				expResponse: UserControllerResponse{
+					Message: "User has been created",
+					Status:  true,
+					User: models.User{
+						Email: "jade@edenia.com",
+					},
+				},
+				expHTTPStatus: http.StatusOK,
 			},
-			expStatus: http.StatusOK,
 		},
 		{
 			name: "Incomplete Email",
-			createUserReq: models.User{
-				Model:     datalayer.Model{},
-				Email:     "",
-				Password:  "secret",
+			createUserParams: CreateUserParameters{
+				createUserReq: models.User{
+					Email:        "",
+					Password:     "secret",
+				},
+				expResponse: UserControllerResponse{
+					Message: "Email address is required",
+					Status:  false,
+				},
+				expHTTPStatus: http.StatusBadRequest,
 			},
-			expCreateUserResp : UserControllerResponse{
-				Message: "Email address is required",
-				Status:  false,
-			},
-			expStatus: http.StatusBadRequest,
 		},
 		{
 			name: "Incomplete Password",
-			createUserReq: models.User{
-				Model:     datalayer.Model{},
-				Email:     "sindel@dreamrealm.com",
+			createUserParams: CreateUserParameters{
+				createUserReq: models.User{
+					Email:        "sindel@dreamrealm.com",
+				},
+				expResponse: UserControllerResponse{
+					Message: "Password is required",
+					Status:  false,
+				},
+				expHTTPStatus: http.StatusBadRequest,
 			},
-			expCreateUserResp : UserControllerResponse{
-				Message: "Password is required",
-				Status:  false,
-			},
-			expStatus: http.StatusBadRequest,
 		},
 	}
-	
-	url, _ := setup(t)
-	ctx := context.Background()
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			callbacks := state.NewMockCallbacks(mailCallback)
+			state := facotory.NewForTesting(t, callbacks)
+			ctx := state.Context
 			cl := new(http.Client)
-			// Create new user.
-			{
-				req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/auth/sign-up", nil)
 
-				assert.NoError(t, err)
+			createUser(t, ctx, cl, state.URL, &test.createUserParams)
 
-				b, err := json.Marshal(test.createUserReq)
-				require.NoError(t, err)
-
-				req.Body = ioutil.NopCloser(bytes.NewReader(b))
-				defer req.Body.Close()
-
-				res, err := cl.Do(req)
-				require.NoError(t, err)
-
-				body, err := ioutil.ReadAll(res.Body)
-				gotCreateUserResp := new(UserControllerResponse)
-				err = json.Unmarshal(body, gotCreateUserResp)
-				require.NoError(t, err)
-				assert.Equal(t, test.expStatus, res.StatusCode)
-				assert.Equal(t, test.expCreateUserResp.Message, gotCreateUserResp.Message)
-				assert.Equal(t, test.expCreateUserResp.Status, gotCreateUserResp.Status)
-				assert.Equal(t, test.expCreateUserResp.User.Email, gotCreateUserResp.User.Email)
-			}
-
-			// Exit test if the previous call failed.
-			if !test.expCreateUserResp.Status {
+			// End the test if createUser is supposed to fail.
+			if !test.createUserParams.expResponse.Status {
 				return
 			}
 
-			login(t, ctx, cl, url, test.authParameters)
+			callbacks.MockMailWG.Wait()
+
+			fmt.Println("Got mail, lets login...")
+
+			login(t, ctx, cl, state.URL, test.authParameters)
 		})
 	}
 }

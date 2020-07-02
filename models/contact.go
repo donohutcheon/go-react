@@ -1,6 +1,7 @@
 package models
 
 import (
+	"github.com/donohutcheon/gowebserver/state"
 	"log"
 
 	"github.com/donohutcheon/gowebserver/datalayer"
@@ -10,13 +11,13 @@ type Contact struct {
 	datalayer.Model
 	Name      string `json:"name"`
 	Phone     string `json:"phone"`
-	UserID    int64  `json:"user_id"`
-	dataLayer datalayer.DataLayer
+	UserID    int64  `json:"userID"`
+	serverState *state.ServerState
 }
 
-func NewContact(dataLayer *datalayer.DataLayer) *Contact {
+func NewContact(state *state.ServerState) *Contact {
 	contact := new(Contact)
-	contact.dataLayer = *dataLayer
+	contact.serverState = state
 	return contact
 }
 
@@ -54,7 +55,7 @@ func (c *Contact) Create() (*Contact, error) {
 		return nil, err
 	}
 
-	dl := c.dataLayer
+	dl := c.serverState.DataLayer
 	id, err := dl.CreateContact(c.Name, c.Phone, c.UserID)
 	if err != nil {
 		// TODO: remove logging
@@ -72,7 +73,7 @@ func (c *Contact) Create() (*Contact, error) {
 }
 
 func (c *Contact) GetContact(id int64) (*Contact, error) {
-	dl := c.dataLayer
+	dl := c.serverState.DataLayer
 	dbContact, err := dl.GetContactByID(id)
 	if err == datalayer.ErrNoData {
 		return nil, err // TODO: return proper error with code
@@ -85,7 +86,7 @@ func (c *Contact) GetContact(id int64) (*Contact, error) {
 }
 
 func (c *Contact) GetContacts(userID int64) ([]*Contact, error) {
-	dl := c.dataLayer
+	dl := c.serverState.DataLayer
 	contacts := make([]*Contact, 0)
 
 	dbContacts, err := dl.GetContactsByUserID(userID)

@@ -1,3 +1,5 @@
+DROP DATABASE `gocontacts`;
+
 CREATE DATABASE `gocontacts`;
 USE `gocontacts`;
 
@@ -10,10 +12,27 @@ CREATE TABLE `users` (
   `email` varchar(255) DEFAULT NULL,
   `password` varchar(255) DEFAULT NULL,
   `role` varchar(255) DEFAULT NULL,
+  `state` varchar(16) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_users_email` (`email`),
   KEY `idx_users_deleted_at` (`deleted_at`)
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=latin1;
+
+CREATE TABLE `sign_up_confirmations` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `created_at` timestamp DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `nonce` varchar(32) NOT NULL,
+  `user_id` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `nonce` (`nonce`),
+  FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+  KEY `idx_contacts_user_id` (`user_id`),
+  KEY `idx_contacts_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
 
 CREATE TABLE `contacts` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,

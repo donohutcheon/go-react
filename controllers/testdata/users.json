@@ -11,6 +11,10 @@
     "password": {
       "String": "$2a$10$NkTUeL6hkTRZ7M13tKYLqOmg7pAQaGPdpch9b5UoTSoO77MHjbPjm",
       "Valid": true
+    },
+    "state": {
+      "String": "CONFIRMED",
+      "Valid": true
     }
   },
   {
@@ -24,6 +28,10 @@
     },
     "password": {
       "String": "$2a$10$NkTUeL6hkTRZ7M13tKYLqOmg7pAQaGPdpch9b5UoTSoO77MHjbPjm",
+      "Valid": true
+    },
+    "state": {
+      "String": "CONFIRMED",
       "Valid": true
     }
   }

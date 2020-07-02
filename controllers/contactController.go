@@ -2,18 +2,18 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/state"
 )
 
-func CreateContact(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func CreateContact(w http.ResponseWriter, r *http.Request, state *state.ServerState) error {
 	user := r.Context().Value("user").(int64) //Grab the id of the user that send the request
-	contact := models.NewContact(&dataLayer)
+	contact := models.NewContact(state)
 
 	err := json.NewDecoder(r.Body).Decode(contact)
 	if err != nil {
@@ -37,8 +37,8 @@ func CreateContact(w http.ResponseWriter, r *http.Request, logger *log.Logger, d
 	return nil
 }
 
-func GetContactsFor(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
-	contact := models.NewContact(&dataLayer)
+func GetContactsFor(w http.ResponseWriter, r *http.Request, state *state.ServerState) error {
+	contact := models.NewContact(state)
 	id := r.Context().Value("userID").(int64)
 	data, err := contact.GetContacts(id)
 	if err == datalayer.ErrNoData {

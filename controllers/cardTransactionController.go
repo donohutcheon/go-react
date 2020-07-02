@@ -2,22 +2,23 @@ package controllers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/datalayer"
 	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/models/pagination"
+	"github.com/donohutcheon/gowebserver/state"
 )
 
-func CreateCardTransaction(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func CreateCardTransaction(w http.ResponseWriter, r *http.Request, state *state.ServerState) error {
 	if r.Method == http.MethodOptions {
 		return nil
 	}
 
 	userID := r.Context().Value("userID").(int64) //Grab the id of the userID that send the request
-	cardTransaction := models.NewCardTransaction(&dataLayer)
+	cardTransaction := models.NewCardTransaction(state)
 
 	err := json.NewDecoder(r.Body).Decode(cardTransaction)
 	if err != nil {
@@ -42,12 +43,24 @@ func CreateCardTransaction(w http.ResponseWriter, r *http.Request, logger *log.L
 	return nil
 }
 
-func GetCardTransactions(w http.ResponseWriter, r *http.Request, logger *log.Logger, dataLayer datalayer.DataLayer) error {
+func GetCardTransactions(w http.ResponseWriter, r *http.Request, state *state.ServerState) error {
 	if r.Method == http.MethodOptions {
 		return nil
 	}
 
-	cardTransaction := models.NewCardTransaction(&dataLayer)
+	cardTransaction := models.NewCardTransaction(state)
+	err := pagination.ParsePagination(state.Logger, r.URL.Query(), cardTransaction)
+	if err != nil {
+		errors.WriteError(w, err, http.StatusBadRequest)
+		return err
+	}
+	err = cardTransaction.SetFilterCriteria(r.URL.Query())
+	if err != nil {
+		errors.WriteError(w, err, http.StatusBadRequest)
+		return err
+	}
+
+
 	userID := r.Context().Value("userID").(int64)
 	data, err := cardTransaction.GetCardTransactionsByUserID(userID)
 	if err != nil && err != datalayer.ErrNoData {

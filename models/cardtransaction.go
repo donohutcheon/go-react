@@ -1,36 +1,73 @@
 package models
 
 import (
-	"log"
+	e "github.com/donohutcheon/gowebserver/controllers/errors"
+	"github.com/donohutcheon/gowebserver/controllers/response/types"
+	"github.com/donohutcheon/gowebserver/models/filters"
+	"github.com/donohutcheon/gowebserver/models/pagination"
+	"github.com/donohutcheon/gowebserver/state"
+	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/donohutcheon/gowebserver/datalayer"
 )
 
 type CurrencyValue struct {
-	Value int64 `json:"value"`
-	Scale int   `json:"scale"`
+	Value int64 `json:"value" db:"amount"`
+	Scale int   `json:"scale" db:"currency_scale"`
 }
 
 type CardTransaction struct {
 	datalayer.Model
-	DateTime             time.Time     `json:"dateTime"`
+	DateTime             time.Time     `json:"dateTime" db:"datetime"`
 	Amount               CurrencyValue `json:"amount"`
-	CurrencyCode         string        `json:"currencyCode"`
-	Reference            string        `json:"reference"`
-	MerchantName         string        `json:"merchantName"`
-	MerchantCity         string        `json:"merchantCity"`
-	MerchantCountryCode  string        `json:"merchantCountryCode"`
-	MerchantCountryName  string        `json:"merchantCountryName"`
-	MerchantCategoryCode string        `json:"merchantCategoryCode"`
-	MerchantCategoryName string        `json:"merchantCategoryName"`
-	UserID               int64         `json:"user_id"`
-	dataLayer            datalayer.DataLayer
+	CurrencyCode         string        `json:"currencyCode" db:"currency_code"`
+	Reference            string        `json:"reference" db:"reference"`
+	MerchantName         string        `json:"merchantName" db:"merchant_name"`
+	MerchantCity         string        `json:"merchantCity" db:"merchant_city"`
+	MerchantCountryCode  string        `json:"merchantCountryCode" db:"merchant_country_code"`
+	MerchantCountryName  string        `json:"merchantCountryName" db:"merchant_country_name"`
+	MerchantCategoryCode string        `json:"merchantCategoryCode" db:"merchant_category_code"`
+	MerchantCategoryName string        `json:"merchantCategoryName" db:"merchant_category_name"`
+	UserID               int64         `json:"userID" db:"user_id"`
+	serverState          *state.ServerState
+	pagination           pagination.Parameters
+	filter               filters.CardTransactionFilter
 }
 
-func NewCardTransaction(dataLayer *datalayer.DataLayer) *CardTransaction {
+
+
+func (c *CardTransaction) GetSortFields() map[string]bool {
+	return map[string]bool {
+		"id": true,
+		"amount" : true,
+		"currencyCodes" : true,
+		"dateTime" : true,
+		"references" : true,
+		"merchantNames" : true,
+		"merchantCities" : true,
+		"merchantCountryCodes" : true,
+		"merchantCountryNames" : true,
+		"merchantCategoryCodes" : true,
+		"merchantCategoryNames" : true,
+	}
+}
+
+func (c *CardTransaction) SetSortParameters(parameters pagination.Parameters) {
+	c.pagination = parameters
+}
+
+func (c *CardTransaction) GetPagination() pagination.Parameters {
+	return c.pagination
+}
+
+func NewCardTransaction(state *state.ServerState) *CardTransaction {
 	cardTransaction := new(CardTransaction)
-	cardTransaction.dataLayer = *dataLayer
+	cardTransaction.serverState = state
+
 	return cardTransaction
 }
 
@@ -104,11 +141,10 @@ func (c *CardTransaction) CreateCardTransaction() (*CardTransaction, error) {
 
 	dbCardTransaction := c.convertToDB()
 
-	dl := c.dataLayer
+	dl := c.serverState.DataLayer
 	id, err := dl.CreateCardTransaction(dbCardTransaction)
 	if err != nil {
-		// TODO: remove logging
-		log.Fatal(err)
+		c.serverState.Logger.Println(err)
 		return nil, err
 	}
 
@@ -123,7 +159,7 @@ func (c *CardTransaction) CreateCardTransaction() (*CardTransaction, error) {
 }
 
 func (c *CardTransaction) GetCardTransaction(id int64) (*CardTransaction, error) {
-	dl := c.dataLayer
+	dl := c.serverState.DataLayer
 	dbCardTransaction, err := dl.GetCardTransactionByID(id)
 	if err == datalayer.ErrNoData {
 		return nil, err // TODO: return proper error with code
@@ -135,10 +171,10 @@ func (c *CardTransaction) GetCardTransaction(id int64) (*CardTransaction, error)
 }
 
 func (c *CardTransaction) GetCardTransactionsByUserID(userID int64) ([]*CardTransaction, error) {
-	dl := c.dataLayer
+	dl := c.serverState.DataLayer
 	cardTransactions := make([]*CardTransaction, 0)
 
-	dbCardTransactions, err := dl.GetCardTransactionsByUserID(userID)
+	dbCardTransactions, err := dl.GetCardTransactionsByUserID(userID, c, c.filter)
 	if err == datalayer.ErrNoData {
 		return nil, err
 	} else if err != nil {
@@ -151,4 +187,107 @@ func (c *CardTransaction) GetCardTransactionsByUserID(userID int64) ([]*CardTran
 	}
 
 	return cardTransactions, err
+}
+
+func (c *CardTransaction) SetFilterCriteria(queryParams url.Values) error {
+	err := c.filterAmount(queryParams)
+	if err != nil {
+		return err
+	}
+
+	err = c.filterDateTime(queryParams)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *CardTransaction) filterAmount(queryParams url.Values) error {
+	queryVal, ok := queryParams["amount"]
+	if !ok {
+		return nil
+	}
+
+	if len(queryVal) == 0 {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid value"},
+		}, http.StatusBadRequest)
+	}
+	amountRange := strings.Split(queryVal[0], "-")
+	if len(amountRange) != 2 {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid amount range"},
+		}, http.StatusBadRequest)
+	}
+
+	value, err := strconv.ParseInt(amountRange[0], 10, 64)
+	if err != nil {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid lowerbound amount value"},
+		}, http.StatusBadRequest)
+	}
+	c.filter.Amount.LowerBound = value
+
+	value, err = strconv.ParseInt(amountRange[1], 10, 64)
+	if err != nil {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid upperbound amount value"},
+		}, http.StatusBadRequest)
+	}
+	c.filter.Amount.UpperBound = value
+
+	if c.filter.Amount.UpperBound < c.filter.Amount.LowerBound {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "upperbound must be greater than the lowerbound amount value"},
+		}, http.StatusBadRequest)
+	}
+	c.filter.Amount.IsSet = true
+
+	return nil
+}
+
+func (c *CardTransaction) filterDateTime(queryParams url.Values) error {
+	queryVal, ok := queryParams["dateTime"]
+	if !ok {
+		return nil
+	}
+
+	if len(queryVal) == 0 {
+		return e.NewError("dateTime filter range is invalid", []types.ErrorField{
+			{Name: "dateTime", Message: "invalid value"},
+		}, http.StatusBadRequest)
+	}
+
+	dateRange := strings.Split(queryVal[0], "-")
+	if len(dateRange) != 2 {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid amount range"},
+		}, http.StatusBadRequest)
+	}
+
+	lowerValue, err := strconv.ParseInt(dateRange[0], 10, 64)
+	if err != nil {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid lowerbound amount value"},
+		}, http.StatusBadRequest)
+	}
+	c.filter.DateTime.LowerBound = time.Unix(lowerValue, 0)
+
+	upperValue, err := strconv.ParseInt(dateRange[1], 10, 64)
+	if err != nil {
+		return e.NewError("amount filter range is invalid", []types.ErrorField{
+			{Name: "amount", Message: "invalid upperbound amount value"},
+		}, http.StatusBadRequest)
+	}
+	c.filter.DateTime.UpperBound = time.Unix(upperValue, 0)
+
+	if upperValue < lowerValue {
+		return e.NewError("dateTime filter range is invalid", []types.ErrorField{
+			{Name: "dateTime", Message: "upperbound must be greater than the lowerbound dateTime value"},
+		}, http.StatusBadRequest)
+	}
+	c.filter.DateTime.IsSet = true
+
+	return nil
 }

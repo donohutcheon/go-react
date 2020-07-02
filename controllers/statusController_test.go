@@ -1,23 +1,23 @@
 package controllers_test
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"testing"
 
 	"github.com/donohutcheon/gowebserver/controllers/response"
+	"github.com/donohutcheon/gowebserver/state"
+	"github.com/donohutcheon/gowebserver/state/facotory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetStatus(t *testing.T) {
-	url, _ := setup(t)
+	state := facotory.NewForTesting(t, state.NewMockCallbacks(mailCallback))
+	ctx := state.Context
 
-	ctx := context.Background()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url + "/status", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, state.URL + "/status", nil)
 	assert.NoError(t, err)
 
 	cl := new(http.Client)

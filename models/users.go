@@ -3,7 +3,8 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"github.com/donohutcheon/gowebserver/controllers/response/types"
+	"github.com/donohutcheon/gowebserver/state"
 	"net/http"
 	"os"
 	"strings"
@@ -23,7 +24,7 @@ type Settings struct {
 
 type User struct {
 	datalayer.Model
-	dataLayer    datalayer.DataLayer
+	serverState  *state.ServerState
 	Email        string    `json:"email"`
 	FirstName    string    `json:"firstName"`
 	Surname      string    `json:"surname"`
@@ -37,9 +38,9 @@ type User struct {
 	LoggedOutAt  time.Time `json:"loggedOutAt,omitempty"`
 }
 
-func NewUser(dataLayer datalayer.DataLayer) *User {
+func NewUser(state *state.ServerState) *User {
 	user := new(User)
-	user.dataLayer = dataLayer
+	user.serverState = state
 	return user
 }
 
@@ -71,7 +72,7 @@ func (u *User) validate() error {
 
 	//Email must be unique
 	//check for errors and duplicate emails
-	dl := u.dataLayer
+	dl := u.serverState.DataLayer
 	_, err := dl.GetUserByEmail(u.Email)
 	if err != sql.ErrNoRows {
 		return ErrEmailExists
@@ -81,19 +82,21 @@ func (u *User) validate() error {
 }
 
 func (u *User) Create() (*User, error) {
+	logger := u.serverState.Logger
 	err := u.validate()
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO: Add some sort of salt
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
 	u.Password = string(hashedPassword)
 
-	dl := u.dataLayer
+	dl := u.serverState.DataLayer
 	// TODO: Include roles
 	id, err :=  dl.CreateUser(u.Email, u.Password)
 	if err != nil {
-		log.Fatal(err) // TODO: remove
+		logger.Fatal(err) // TODO: remove
 		return nil, err
 	}
 
@@ -101,6 +104,9 @@ func (u *User) Create() (*User, error) {
 	if err != nil && err != datalayer.ErrNoData {
 		return nil, err
 	}
+
+	// Send confirmation Email
+	u.serverState.Channels.ConfirmUsers <- *dbUser
 
 	user := new(User)
 	user.convert(*dbUser)
@@ -137,15 +143,19 @@ func (u *User) Create() (*User, error) {
 }
 
 func (u *User) Login(email, password string) (*app.TokenResponse, error) {
-	dataLayer := u.dataLayer
-	dbAcc, err := dataLayer.GetUserByEmail(email)
+	dataLayer := u.serverState.DataLayer
+	dbUser, err := dataLayer.GetUserByEmail(email)
 	if err == sql.ErrNoRows {
 		return nil, ErrLoginFailed
 	} else if err != nil {
 		return nil, err
 	}
 
-	u.convert(*dbAcc)
+	if datalayer.UserState(dbUser.State.String) != datalayer.UserStateConfirmed {
+		return nil, ErrUserNotConfirmed
+	}
+
+	u.convert(*dbUser)
 
 	err = bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password))
 	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword { //Password does not match!
@@ -164,7 +174,7 @@ func (u *User) Login(email, password string) (*app.TokenResponse, error) {
 }
 
 func (u *User) GetUser(id int64) (error) {
-	dl := u.dataLayer
+	dl := u.serverState.DataLayer
 	dbUser, err := dl.GetUserByID(id)
 	if err == datalayer.ErrNoData {
 		return ErrUserDoesNotExist
@@ -173,6 +183,26 @@ func (u *User) GetUser(id int64) (error) {
 	}
 
 	u.convert(*dbUser)
+
+	return nil
+}
+
+func (u *User) ConfirmUser(nonce string) error {
+	logger := u.serverState.Logger
+	dl := u.serverState.DataLayer
+
+	signUp, err := dl.LookupSignUpConfirmation(nonce)
+	if err != nil {
+		return e.NewError("User confirmation not found", []types.ErrorField{
+			{Name: "nonce", Message: "Nonce not found"},
+		}, http.StatusNotFound)
+	}
+	logger.Printf("Received nonce confirmation for user %d %s", signUp.UserID, nonce)
+
+	err = dl.SetUserStateByID(signUp.UserID, datalayer.UserStateConfirmed)
+	if err != nil {
+		return e.Wrap(fmt.Sprintf("Failed to confirm user [%d]", signUp.UserID), http.StatusInternalServerError, err)
+	}
 
 	return nil
 }

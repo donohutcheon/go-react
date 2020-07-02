@@ -2,6 +2,7 @@ package errors
 
 import (
 	"fmt"
+	"github.com/donohutcheon/gowebserver/controllers/response/types"
 	"net/http"
 
 	"github.com/donohutcheon/gowebserver/controllers/response"
@@ -9,13 +10,15 @@ import (
 
 type ControllerError struct {
 	ErrorMessage string
+	Fields []types.ErrorField
 	StatusCode int
 	Err error
 }
 
-func NewError(errorMessage string, statusCode int) *ControllerError {
+func NewError(errorMessage string, fields []types.ErrorField, statusCode int) *ControllerError {
 	m := new(ControllerError)
 	m.ErrorMessage = errorMessage
+	m.Fields = fields
 	m.StatusCode = statusCode
 	return m
 }
@@ -38,7 +41,7 @@ func (e *ControllerError) Error() string {
 
 func WriteError(w http.ResponseWriter, err error, defaultStatusCode ...int) {
 	if err, ok := err.(*ControllerError); ok {
-		resp := response.New(false, err.ErrorMessage)
+		resp := response.NewWithFieldsList(false, err.ErrorMessage, err.Fields)
 		w.WriteHeader(err.StatusCode)
 		resp.Respond(w)
 		return
