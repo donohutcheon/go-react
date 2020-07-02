@@ -10,10 +10,17 @@ RUN curl https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/go.tgz | ta
 #Execute Buildpack
 RUN STACK=heroku-18 /tmp/buildpack/heroku/go/bin/compile /app /tmp/build_cache /tmp/env
 
+# Build the React application
+FROM node:alpine AS node_builder
+COPY --from=builder /app/static ./
+RUN npm install
+RUN npm run build
+
 # Prepare final, minimal image
 FROM heroku/heroku:18
 
 COPY --from=build /app /app
+COPY --from=node_builder /build /app/static
 ENV HOME /app
 WORKDIR /app
 RUN useradd -m heroku
