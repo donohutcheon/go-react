@@ -22,6 +22,7 @@ FROM heroku/heroku:18
 COPY --from=build /app /app
 COPY --from=node_builder /build /app/web
 ENV HOME /app
+RUN touch /app/test.txt
 RUN env > web_env.txt
 WORKDIR /app
 RUN useradd -m heroku
