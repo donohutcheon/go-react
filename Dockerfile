@@ -18,13 +18,13 @@ FROM node:alpine AS node_builder
 COPY --from=build /app/static .
 RUN npm install
 RUN npm run build
-RUN find .
+RUN find . | grep -v "node_modules"
 
 # Prepare final, minimal image
 FROM heroku/heroku:18
 
 COPY --from=build /app /app
-COPY --from=node_builder /build /static
+COPY --from=node_builder /build /app/web
 ENV HOME /app
 WORKDIR /app
 RUN useradd -m heroku

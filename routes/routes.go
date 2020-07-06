@@ -74,7 +74,7 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 func NewHandlers(state *state.ServerState) *Handlers {
 	return &Handlers{
 		serverState: state,
-		staticPath: "static/",
+		staticPath: "web/",
 		indexPath: "index.html",
 	}
 }
