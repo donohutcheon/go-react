@@ -22,7 +22,6 @@ RUN find . | grep -v "node_modules"
 
 # Prepare final, minimal image
 FROM heroku/heroku:18
-
 COPY --from=build /app /app
 COPY --from=node_builder /build /app/web
 ENV HOME /app
