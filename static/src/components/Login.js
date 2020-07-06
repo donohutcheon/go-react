@@ -59,7 +59,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const [{ status, response }, makeRequest] = useApiRequest(
-      `http://127.0.0.1:8000/auth/login`,
+      `http://127.0.0.1:8000/api/auth/login`,
       {
         verb: "post",
         data: {email, password}
@@ -68,6 +68,7 @@ export default function Login() {
 
   useEffect(() => {
     if(status === SUCCESS) {
+      console.log(process.env.NODE_ENV);
       console.log("login use effect", status, response.data.token.accessToken)
       setAuthentication(response.data.token.accessToken, response.data.token.refreshToken, rememberMe)
       history.push('/dashboard')

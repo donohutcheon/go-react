@@ -2,10 +2,10 @@ package controllers
 
 import (
 	"encoding/json"
-	"github.com/donohutcheon/gowebserver/app"
 	"github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/models"
+	"github.com/donohutcheon/gowebserver/routes/auth"
 	"github.com/donohutcheon/gowebserver/state"
 	"net/http"
 )
@@ -54,7 +54,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request, state *state.ServerSta
 		return nil
 	}
 
-	refreshTokenReq := new(app.RefreshJWTReq)
+	refreshTokenReq := new(auth.RefreshJWTReq)
 	err := json.NewDecoder(r.Body).Decode(refreshTokenReq) //decode the request body into struct and failed if any error occur
 	if err != nil {
 		errors.WriteError(w, err, http.StatusBadRequest)
@@ -66,7 +66,7 @@ func RefreshToken(w http.ResponseWriter, r *http.Request, state *state.ServerSta
 		return err
 	}
 
-	data, err := app.RefreshToken(refreshTokenReq.RefreshToken)
+	data, err := auth.RefreshToken(refreshTokenReq.RefreshToken)
 	if err != nil {
 		errors.WriteError(w, err)
 		return err

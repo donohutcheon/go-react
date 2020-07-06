@@ -60,7 +60,7 @@ export default function SignUp() {
 	const [responseMessage, setResponseMessage] = useState('')
 	const [errorFields, setErrorFields] = useState([])
 	const [{ status, response }, makeRequest] = useApiRequest(
-		`http://127.0.0.1:8000/auth/sign-up`,
+		`http://127.0.0.1:8000/api/auth/sign-up`,
 		{
 			verb: "post",
 			data: {email, password, firstName, surname}

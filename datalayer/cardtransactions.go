@@ -77,8 +77,9 @@ func (p *PersistenceDataLayer) GetCardTransactionsByUserID(userID int64, sortabl
 	}*/
 
 	//pagination := fmt.Sprintf(" and id %s ? order by %s %s, id %s limit %d", pageFilterDir, dbSortField, pageParams.SortDir, pageParams.SortDir, pageParams.FetchCount)
-	offset := pageParams.Page * pageParams.FetchCount
-	pagination := fmt.Sprintf(" order by %s %s, id %s limit %d, %d", dbSortField, pageParams.SortDir, pageParams.SortDir, offset, pageParams.FetchCount)
+	//offset := pageParams.Page * pageParams.FetchCount
+	pagination := pageParams.BuildPagination(dbSortField)
+	//pagination := fmt.Sprintf(" order by %s %s, id %s limit %d, %d", dbSortField, pageParams.SortDir, pageParams.SortDir, offset, pageParams.FetchCount)
 	statement := "SELECT * FROM card_transactions WHERE user_id=? " + filterSQL + pagination
 	fmt.Println(statement)
 	var bindValues []interface{}

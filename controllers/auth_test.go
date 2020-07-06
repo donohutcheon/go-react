@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"github.com/donohutcheon/gowebserver/routes/auth"
 	"io/ioutil"
 	"net/http"
 	"testing"
 	"time"
 
-	"github.com/donohutcheon/gowebserver/app"
 	"github.com/donohutcheon/gowebserver/models"
 	"github.com/donohutcheon/gowebserver/state"
 	"github.com/donohutcheon/gowebserver/state/facotory"
@@ -18,9 +18,9 @@ import (
 )
 
 type AuthResponse struct {
-	Message string            `json:"message"`
-	Status  bool              `json:"status"`
-	Token   app.TokenResponse `json:"token"`
+	Message string             `json:"message"`
+	Status  bool               `json:"status"`
+	Token   auth.TokenResponse `json:"token"`
 }
 
 func TestAuthenticate(t *testing.T) {
@@ -114,7 +114,7 @@ type AuthParameters struct {
 }
 
 type RefreshTokenParameters struct {
-	request       app.RefreshJWTReq
+	request       auth.RefreshJWTReq
 	expHTTPStatus int
 	expResponse   AuthResponse
 }

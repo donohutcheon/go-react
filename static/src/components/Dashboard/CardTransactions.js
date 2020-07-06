@@ -80,7 +80,7 @@ export default function CardTransactions() {
   };
 
   const [{ status, response }, makeRequest] = useApiRequest(
-      `http://127.0.0.1:8000/me/card-transactions`,
+      `http://127.0.0.1:8000/api/me/card-transactions`,
       {
         verb: "get",
         params: {
@@ -92,6 +92,7 @@ export default function CardTransactions() {
       }
   );
   useEffect(() => {
+    console.log(process.env.NODE_ENV);
     makeRequest();
   }, [page, rowsPerPage, orderBy, order]);
   useEffect( () => {

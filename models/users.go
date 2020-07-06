@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/donohutcheon/gowebserver/controllers/response/types"
+	"github.com/donohutcheon/gowebserver/routes/auth"
 	"github.com/donohutcheon/gowebserver/state"
 	"net/http"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
-	"github.com/donohutcheon/gowebserver/app"
 	e "github.com/donohutcheon/gowebserver/controllers/errors"
 	"github.com/donohutcheon/gowebserver/datalayer"
 	"golang.org/x/crypto/bcrypt"
@@ -114,8 +114,8 @@ func (u *User) Create() (*User, error) {
 	//Create new JWT token for the newly registered user
 	now := time.Now()
 	epochSecs := now.Unix()
-	expireDateTime := epochSecs + app.AccessTokenLifeSpan
-	accessToken := &app.JSONWebToken{
+	expireDateTime := epochSecs + auth.AccessTokenLifeSpan
+	accessToken := &auth.JSONWebToken{
 		UserID: dbUser.ID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expireDateTime,
@@ -126,10 +126,10 @@ func (u *User) Create() (*User, error) {
 	accessTokenString, _ := signedAccessToken.SignedString([]byte(os.Getenv("token_password")))
 	user.AccessToken = accessTokenString
 
-	refreshToken := &app.JSONWebToken{
+	refreshToken := &auth.JSONWebToken{
 		UserID: user.ID,
 		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: epochSecs + app.RefreshTokenLifeSpan,
+			ExpiresAt: epochSecs + auth.RefreshTokenLifeSpan,
 			IssuedAt:  epochSecs,
 		},
 	}
@@ -142,7 +142,7 @@ func (u *User) Create() (*User, error) {
 	return user, nil
 }
 
-func (u *User) Login(email, password string) (*app.TokenResponse, error) {
+func (u *User) Login(email, password string) (*auth.TokenResponse, error) {
 	dataLayer := u.serverState.DataLayer
 	dbUser, err := dataLayer.GetUserByEmail(email)
 	if err == sql.ErrNoRows {
@@ -165,7 +165,7 @@ func (u *User) Login(email, password string) (*app.TokenResponse, error) {
 	u.Password = ""
 
 	// Create JWT token
-	tokenResp, err := app.CreateToken(u.ID)
+	tokenResp, err := auth.CreateToken(u.ID)
 	if err != nil {
 		return nil, e.Wrap("token creation failed", http.StatusInternalServerError, err)
 	}

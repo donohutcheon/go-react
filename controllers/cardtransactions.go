@@ -60,7 +60,6 @@ func GetCardTransactions(w http.ResponseWriter, r *http.Request, state *state.Se
 		return err
 	}
 
-
 	userID := r.Context().Value("userID").(int64)
 	data, err := cardTransaction.GetCardTransactionsByUserID(userID)
 	if err != nil && err != datalayer.ErrNoData {
