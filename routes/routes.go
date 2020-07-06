@@ -64,8 +64,6 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 		router.HandleFunc(r, h.WrapHandlerFunc(e.Handler)).Methods(e.Methods...)
 	}
 
-	h.staticPath = "static/build/"
-	h.indexPath = "index.html"
 	router.PathPrefix("/").Handler(h)
 
 	router.Use(mux.CORSMethodMiddleware(router))
@@ -76,7 +74,7 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 func NewHandlers(state *state.ServerState) *Handlers {
 	return &Handlers{
 		serverState: state,
-		staticPath: "static/build/",
+		staticPath: "app/web/",
 		indexPath: "index.html",
 	}
 }
