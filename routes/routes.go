@@ -74,7 +74,7 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 func NewHandlers(state *state.ServerState) *Handlers {
 	return &Handlers{
 		serverState: state,
-		staticPath: "web/",
+		staticPath: "static/build/",
 		indexPath: "index.html",
 	}
 }
@@ -87,19 +87,15 @@ func (h Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodOptions {
 		return
 	}
-	// get the absolute path to prevent directory traversal
+
 	path, err := filepath.Abs(r.URL.Path)
 	if err != nil {
-		// if we failed to get the absolute path respond with a 400 bad request
-		// and stop
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// prepend the path with the path to the static directory
 	path = filepath.Join(h.staticPath, path)
 
-	// check whether a file exists at the given path
 	_, err = os.Stat(path)
 	if os.IsNotExist(err) {
 		// file does not exist, serve index.html

@@ -21,7 +21,14 @@ RUN npm run build
 # Prepare final, minimal image
 FROM heroku/heroku:18
 COPY --from=build /app /app
-COPY --from=node_builder /static/build /app/web
+
+# Install
+RUN curl https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/go.tgz | tar xz -C /tmp/buildpack/heroku/go
+WORKDIR /app/static
+RUN npm install
+RUN npm run build
+
+
 ENV HOME /app
 RUN touch /app/test.txt
 RUN env > web_env.txt

@@ -80,7 +80,7 @@ export default function CardTransactions() {
   };
 
   const [{ status, response }, makeRequest] = useApiRequest(
-      `http://127.0.0.1:8000/api/me/card-transactions`,
+      `/api/me/card-transactions`,
       {
         verb: "get",
         params: {

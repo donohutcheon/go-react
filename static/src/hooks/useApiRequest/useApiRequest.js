@@ -22,7 +22,8 @@ const useApiRequest = (endpoint, { verb = "get", params = {}, data = {}} = {}) =
       }
       console.log("headers", {headers : headers})
       console.log("data", {data : data})
-      const response = await axios({method: verb, url: endpoint, data: data, params: params, headers : headers});
+      const url = process.env.REACT_APP_API_URL + endpoint
+      const response = await axios({method: verb, url: url, data: data, params: params, headers : headers});
       dispatch(success(response));
     } catch (e) {
       e.data = e.response.data

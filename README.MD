@@ -88,6 +88,22 @@ docker run -it --network host --rm mariadb mysql -heporqep6b4b8ql12.chr7pe7iynqr
 ```
 
 ## Heroku Config Vars
+
+Configure Heroku to use Docker deploys:
+```
+heroku stack:set container
+```
+
+Build Pack
+```
+heroku buildpacks:set https://github.com/heroku/heroku-buildpack-nodejs#v172 -a charkadog
+
+
+heroku buildpacks:add --index 1 heroku/nodejs -a charkadog
+heroku buildpacks:add --index 2 heroku/go -a charkadog
+```
+
+
 Staging:
 ```
 heroku config:set token_password=CheckThisIsTheJwtPassword --app charkadog

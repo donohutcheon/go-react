@@ -59,7 +59,7 @@ export default function Login() {
   const [rememberMe, setRememberMe] = useState(false);
 
   const [{ status, response }, makeRequest] = useApiRequest(
-      `http://127.0.0.1:8000/api/auth/login`,
+      `/api/auth/login`,
       {
         verb: "post",
         data: {email, password}
