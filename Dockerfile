@@ -14,6 +14,7 @@ RUN STACK=heroku-18 /tmp/buildpack/heroku/go/bin/compile /app /tmp/build_cache /
 FROM node:alpine AS node_builder
 
 COPY --from=build /app/static /build
+WORKDIR /build
 RUN npm install
 RUN npm run build
 
