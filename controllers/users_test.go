@@ -44,7 +44,7 @@ func getCurrentUser(t *testing.T, ctx context.Context, cl *http.Client,
 		return nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url + "/users/current", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url + "/api/users/current", nil)
 	assert.NoError(t, err)
 	req.Header.Add("Authorization", "Bearer " + auth.Token.AccessToken)
 	res, err := cl.Do(req)
@@ -69,7 +69,7 @@ func createUser(t *testing.T, ctx context.Context, cl *http.Client,
 		return nil
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url + "/auth/sign-up", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url + "/api/auth/sign-up", nil)
 
 	assert.NoError(t, err)
 

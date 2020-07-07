@@ -78,7 +78,7 @@ func TestAuthenticate(t *testing.T) {
 			state := facotory.NewForTesting(t, callbacks)
 			ctx := state.Context
 
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, state.URL+"/auth/login", nil)
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, state.URL+"/api/auth/login", nil)
 			assert.NoError(t, err)
 
 			req.Body = ioutil.NopCloser(bytes.NewReader(test.request))
@@ -122,7 +122,7 @@ type RefreshTokenParameters struct {
 func login(t *testing.T, ctx context.Context, cl *http.Client, url string, params AuthParameters) *AuthResponse {
 	testTime := time.Now()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/auth/login", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/api/auth/login", nil)
 	assert.NoError(t, err)
 
 	b, err := json.Marshal(params.authRequest)
@@ -153,7 +153,7 @@ func login(t *testing.T, ctx context.Context, cl *http.Client, url string, param
 
 func refreshToken(t *testing.T, ctx context.Context, cl *http.Client, url string, params RefreshTokenParameters) *AuthResponse {
 	testTime := time.Now()
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/auth/refresh", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/api/auth/refresh", nil)
 	assert.NoError(t, err)
 
 	b, err := json.Marshal(params.request)

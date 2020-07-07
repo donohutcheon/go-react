@@ -17,7 +17,7 @@ func TestGetStatus(t *testing.T) {
 	state := facotory.NewForTesting(t, state.NewMockCallbacks(mailCallback))
 	ctx := state.Context
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, state.URL + "/status", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, state.URL + "/api/status", nil)
 	assert.NoError(t, err)
 
 	cl := new(http.Client)

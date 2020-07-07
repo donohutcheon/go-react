@@ -196,7 +196,7 @@ func createCardTransaction(t *testing.T, ctx context.Context, cl *http.Client,
 		return
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/card-transactions/new", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url+"/api/card-transactions/new", nil)
 	assert.NoError(t, err)
 	req.Header.Add("Authorization", "Bearer "+auth.Token.AccessToken)
 
@@ -225,7 +225,7 @@ func getCardTransactions(t *testing.T, ctx context.Context, cl *http.Client,
 		return
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+"/me/card-transactions", nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url+"/api/me/card-transactions", nil)
 	assert.NoError(t, err)
 	req.Header.Add("Authorization", "Bearer "+auth.Token.AccessToken)
 
