@@ -7,5 +7,6 @@
     "donohutcheon"
   ],
   "website": "http://github.com/donohutcheon/gowebserver",
-  "repository": "http://github.com/donohutcheon/gowebserver"
+  "repository": "http://github.com/donohutcheon/gowebserver",
+  "stack": "container"
 }
