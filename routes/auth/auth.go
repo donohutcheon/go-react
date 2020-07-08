@@ -30,23 +30,6 @@ type TokenResponse struct {
 	RefreshToken string  `json:"refreshToken" sql:"-"`
 }
 
-
-func isPublicRoute(path string) bool{
-	switch path {
-	case
-		"/",
-		"/auth/login",
-		"/auth/refresh",
-		"/auth/sign-up",
-		"/status",
-		"/users/confirm/{nonce}":
-		return true
-	}
-	return false
-}
-
-
-
 func CreateToken(userID int64) (*TokenResponse, error){
 	token := new(TokenResponse)
 	now := time.Now()

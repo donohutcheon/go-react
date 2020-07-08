@@ -39,7 +39,7 @@ func ConfirmUsersForever(state *state.ServerState) {
 		toList := []string{to}
 		from := "noreply@someapp.com"
 		message := fmt.Sprintf("Hello %s,\n Welcome to this app - whatever it is.  Please confirm your registration by clicking on this link " +
-		"%s/users/confirm/%s", u.Email.String, state.URL, nonce)
+		"%s/api/users/confirm/%s", u.Email.String, state.URL, nonce)
 
 		email.SendMail(toList, from, "Welcome to this app!", message)
 
@@ -55,11 +55,11 @@ func ConfirmUsersForever(state *state.ServerState) {
 }
 
 func generateNonce(n int) string {
-	const letterBytes = "abcdefghijklmnopqrstuvwxyz01234567890"
+	const chars = "abcdefghijklmnopqrstuvwxyz01234567890"
 
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = chars[rand.Intn(len(chars))]
 	}
 	return string(b)
 }

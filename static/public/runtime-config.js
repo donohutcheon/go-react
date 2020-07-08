@@ -1,4 +1,5 @@
 // runtime-config.js
 window['runConfig'] = {
-	apiUrl: 'https://charkadog.herokuapp.com'
+	apiUrlProd: 'https://charkadog.herokuapp.com',
+	apiUrl: 'http://127.0.0.1:8000'
 }

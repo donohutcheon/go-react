@@ -1,9 +1,10 @@
 package types
 
 import (
+	"net/http"
+
 	"github.com/donohutcheon/gowebserver/controllers"
 	"github.com/donohutcheon/gowebserver/state"
-	"net/http"
 )
 
 type MiddlewareFunc func(next http.Handler, state *state.ServerState, registry map[string]RouteEntry) http.Handler
@@ -55,6 +56,7 @@ func GetRouteRegistry() map[string]RouteEntry {
 		"/api/users/confirm/{nonce}" : {
 			Handler: controllers.ConfirmUserSignUp,
 			Methods: []string{http.MethodGet, http.MethodOptions},
+			Public: true,
 		},
 	}
 }
