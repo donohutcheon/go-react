@@ -6,7 +6,6 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"net/http"
 	"os"
-	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -64,8 +63,6 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 		router.HandleFunc(r, h.WrapHandlerFunc(e.Handler)).Methods(e.Methods...)
 	}
 
-	router.PathPrefix("/").Handler(h)
-
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(h.WrapMiddlewareFunc(JwtAuthentication, registry)) //attach JWT auth middleware
 }
@@ -77,39 +74,6 @@ func NewHandlers(state *state.ServerState) *Handlers {
 		staticPath: "static/build/",
 		indexPath: "index.html",
 	}
-}
-
-// ServeHTTP inspects the URL path to locate a file within the static dir
-// on the SPA handler. If a file is found, it will be served. If not, the
-// file located at the index path on the SPA handler will be served. This
-// is suitable behavior for serving an SPA (single page application).
-func (h Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodOptions {
-		return
-	}
-
-	path, err := filepath.Abs(r.URL.Path)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	path = filepath.Join(h.staticPath, path)
-
-	_, err = os.Stat(path)
-	if os.IsNotExist(err) {
-		// file does not exist, serve index.html
-		http.ServeFile(w, r, filepath.Join(h.staticPath, h.indexPath))
-		return
-	} else if err != nil {
-		// if we got an error (that wasn't that the file doesn't exist) stating the
-		// file, return a 500 internal server error and stop
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// otherwise, use http.FileServer to serve the static dir
-	http.FileServer(http.Dir(h.staticPath)).ServeHTTP(w, r)
 }
 
 func JwtAuthentication (next http.Handler, state *state.ServerState, registry map[string]types.RouteEntry) http.Handler {
@@ -226,3 +190,5 @@ func JwtAuthentication (next http.Handler, state *state.ServerState, registry ma
 		next.ServeHTTP(w, r) //proceed in the middleware chain!
 	})
 }
+
+

@@ -10,15 +10,12 @@ RUN curl https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/go.tgz | ta
 #Execute Buildpack
 RUN STACK=heroku-18 /tmp/buildpack/heroku/go/bin/compile /app /tmp/build_cache /tmp/env
 
+
 # Prepare final, minimal image
 FROM heroku/heroku:18
 COPY --from=build /app /app
 
 # Install
-WORKDIR /app/static
-RUN npm install
-RUN npm run build
-
 ENV HOME /app
 WORKDIR /app
 RUN useradd -m heroku
