@@ -22,7 +22,7 @@ const useApiRequest = (endpoint, { verb = "get", params = {}, data = {}} = {}) =
       }
       console.log("headers", {headers : headers})
       console.log("data", {data : data})
-      const url = 'http://127.0.0.1:8000' + endpoint
+      const url = process.env.REACT_APP_API_URL + endpoint
       const response = await axios({method: verb, url: url, data: data, params: params, headers : headers});
       dispatch(success(response));
     } catch (e) {

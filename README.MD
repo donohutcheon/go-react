@@ -103,8 +103,14 @@ heroku buildpacks:add --index 1 heroku/nodejs -a charkadog
 heroku buildpacks:add --index 2 heroku/go -a charkadog
 ```
 
+Staging Scrawnycat:
+```
+heroku config:set PROCFILE=static/ --app scrawnycat
+heroku config:set API_URL="https://charkadog.herokuapp.com" --app scrawnycat
+heroku config:set ENVIRONMENT=staging --app scrawnycat
+```
 
-Staging:
+Staging Charkadog:
 ```
 heroku config:set token_password=CheckThisIsTheJwtPassword --app charkadog
 heroku config:set BIND_ADDRESS=0.0.0.0 --app charkadog
