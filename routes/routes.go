@@ -64,7 +64,20 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 	}
 
 	router.Use(mux.CORSMethodMiddleware(router))
+	router.Use(CORSAccessControlAllowOrigin(router))
 	router.Use(h.WrapMiddlewareFunc(JwtAuthentication, registry)) //attach JWT auth middleware
+}
+
+func CORSAccessControlAllowOrigin(r *mux.Router) mux.MiddlewareFunc {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			if req.Method == http.MethodOptions {
+				w.Header().Set("Access-Control-Allow-Origin", "*")
+			}
+
+			next.ServeHTTP(w, req)
+		})
+	}
 }
 
 //NewHandlers void
