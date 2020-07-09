@@ -7,7 +7,7 @@ import (
 	"github.com/donohutcheon/gowebserver/provider/mail"
 	"github.com/donohutcheon/gowebserver/provider/mail/mailtrap"
 	"github.com/donohutcheon/gowebserver/provider/mail/mockmail"
-	"github.com/donohutcheon/gowebserver/routes"
+	"github.com/donohutcheon/gowebserver/router"
 	"github.com/donohutcheon/gowebserver/server"
 	"github.com/donohutcheon/gowebserver/services"
 	"github.com/donohutcheon/gowebserver/state"
@@ -106,7 +106,7 @@ func NewForTesting(t *testing.T, callbacks *state.MockCallbacks) *state.ServerSt
 		Group:        callbacks.MockMailWG,
 	}
 
-	router := mux.NewRouter()
+	r := mux.NewRouter()
 	state := &state.ServerState{
 		Channels: state.Channels{
 			ConfirmUsers: make(chan datalayer.User, 1),
@@ -115,16 +115,16 @@ func NewForTesting(t *testing.T, callbacks *state.MockCallbacks) *state.ServerSt
 		Logger:     logger,
 		ShutdownWG: new(sync.WaitGroup),
 		DataLayer:  mockDataLayer,
-		Router:     router,
+		Router:     r,
 		Providers: state.Providers{
 			Email: mockmail.New(mail),
 		},
 	}
 
-	h := routes.NewHandlers(state)
-	h.SetupRoutes(router)
+	h := router.NewHandlers(state)
+	h.SetupRoutes(r)
 
-	srv := server.New(router, "", "0")
+	srv := server.New(r, "", "0")
 	l, err := net.Listen("tcp", ":0")
 	require.NoError(t, err)
 
@@ -142,7 +142,7 @@ func runServer(state *state.ServerState, mainThreadWG *sync.WaitGroup) {
 	defer mainThreadWG.Done()
 
 	logger := state.Logger
-	h := routes.NewHandlers(state)
+	h := router.NewHandlers(state)
 
 	router := state.Router
 	h.SetupRoutes(router)

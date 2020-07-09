@@ -1,4 +1,4 @@
-package types
+package routes
 
 import (
 	"net/http"
@@ -39,6 +39,10 @@ func GetRouteRegistry() map[string]RouteEntry {
 			Handler: controllers.Authenticate,
 			Methods: []string{http.MethodPost, http.MethodOptions},
 			Public:  true,
+		},
+		"/api/auth/api-token" : {
+			Handler: controllers.GetAPIToken,
+			Methods: []string{http.MethodGet, http.MethodOptions},
 		},
 		"/api/auth/refresh" : {
 			Handler: controllers.RefreshToken,

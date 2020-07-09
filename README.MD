@@ -4,7 +4,7 @@
 
 New User
 ```
-curl -X POST -d '{"email" : "dono@dono.com", "password" : "secret"}' -H 'Content-Type: application/json' localhost:8000/api/auth/sign-up
+curl -X POST -d '{"email" : "z@z.com", "password" : "test123"}' -H 'Content-Type: application/json' localhost:8000/api/auth/sign-up
 
 curl -X POST -d '{"email" : "'$(date +%Y%m%d%H%M%S)'@dono.com", "password" : "secret"}' -H 'Content-Type: application/json' localhost:8000/api/auth/sign-up
 
@@ -32,9 +32,13 @@ access_token=$(curl -X POST -d '{"email" : "dono@dono.com", "password" : "secret
 
 
 curl -X POST -d '{"email" : "20200520234451@dono.com", "password" : "secret"}' -H 'Content-Type: application/json' localhost:8000/api/auth/login 
-
-
 ```
+
+Get API Token
+```shell script
+curl -X GET -d '' -H 'Accept: application/json, text/plain, */*' -H "Authorization: Bearer ${access_token}" localhost:8000/api/auth/api-token
+```
+
 
 Get Current User
 ```

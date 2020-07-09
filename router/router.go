@@ -1,4 +1,4 @@
-package routes
+package router
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 
 	"github.com/donohutcheon/gowebserver/controllers/response"
 	"github.com/donohutcheon/gowebserver/models/auth"
-	"github.com/donohutcheon/gowebserver/routes/types"
+	"github.com/donohutcheon/gowebserver/router/routes"
 	"github.com/donohutcheon/gowebserver/state"
 	"github.com/gorilla/mux"
 )
@@ -29,7 +29,7 @@ func getFunctionName(i interface{}) string {
 	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
 }
 
-func (h *Handlers) WrapHandlerFunc(next types.HandlerFunc) http.HandlerFunc {
+func (h *Handlers) WrapHandlerFunc(next routes.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 		logger := h.serverState.Logger
@@ -42,7 +42,7 @@ func (h *Handlers) WrapHandlerFunc(next types.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-func (h *Handlers) WrapMiddlewareFunc(next types.MiddlewareFunc, registry map[string]types.RouteEntry) mux.MiddlewareFunc {
+func (h *Handlers) WrapMiddlewareFunc(next routes.MiddlewareFunc, registry map[string]routes.RouteEntry) mux.MiddlewareFunc {
 	return func(mwf http.Handler) http.Handler {
 		startTime := time.Now()
 		logger := h.serverState.Logger
@@ -55,7 +55,7 @@ func (h *Handlers) WrapMiddlewareFunc(next types.MiddlewareFunc, registry map[st
 
 //SetupRoutes add home route to mux
 func (h *Handlers) SetupRoutes(router *mux.Router) {
-	registry := types.GetRouteRegistry()
+	registry := routes.GetRouteRegistry()
 	for r, e := range registry {
 		if e.Handler == nil {
 			continue
@@ -89,7 +89,7 @@ func NewHandlers(state *state.ServerState) *Handlers {
 	}
 }
 
-func JwtAuthentication (next http.Handler, state *state.ServerState, registry map[string]types.RouteEntry) http.Handler {
+func JwtAuthentication (next http.Handler, state *state.ServerState, registry map[string]routes.RouteEntry) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("X-FRAME-OPTIONS", "SAMEORIGIN")

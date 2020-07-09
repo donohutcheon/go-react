@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"github.com/donohutcheon/gowebserver/routes/auth"
+	"github.com/donohutcheon/gowebserver/router/auth"
 	"io/ioutil"
 	"net/http"
 	"testing"

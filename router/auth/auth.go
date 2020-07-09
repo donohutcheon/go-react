@@ -13,6 +13,7 @@ import (
 
 const AccessTokenLifeSpan = 36000
 const RefreshTokenLifeSpan = 864000
+const APITokenLifeSpan = 31536000
 
 type JSONWebToken struct {
 	UserID int64 `json:"userID"`
@@ -28,6 +29,11 @@ type TokenResponse struct {
 	ExpiresIn int64 `json:"expiresIn"`
 	AccessToken string  `json:"accessToken" sql:"-"`
 	RefreshToken string  `json:"refreshToken" sql:"-"`
+}
+
+type APITokenResponse struct {
+	ExpiresIn int64 `json:"expiresIn"`
+	APIToken string `json:"apiToken" sql:"-"`
 }
 
 func CreateToken(userID int64) (*TokenResponse, error){
@@ -85,4 +91,31 @@ func RefreshToken(rawToken string) (*TokenResponse, error) {
 	}
 
 	return tokenResp, nil
+}
+
+func CreateAPIToken(userID int64) (*APITokenResponse, error){
+	now := time.Now()
+	epochSecs := now.Unix()
+	expireDateTime := epochSecs + APITokenLifeSpan
+
+	accessToken := &JSONWebToken{
+		UserID: userID,
+		StandardClaims: jwt.StandardClaims{
+			ExpiresAt: expireDateTime,
+			IssuedAt:  epochSecs,
+		},
+	}
+
+	signedAccessToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), accessToken)
+	apiTokenString, err := signedAccessToken.SignedString([]byte(os.Getenv("token_password")))
+	if err != nil {
+		return nil, err
+	}
+
+	token := &APITokenResponse{
+		ExpiresIn: expireDateTime,
+		APIToken: apiTokenString,
+	}
+
+	return token, nil
 }

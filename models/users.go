@@ -3,18 +3,14 @@ package models
 import (
 	"database/sql"
 	"fmt"
-	"github.com/donohutcheon/gowebserver/controllers/response/types"
-	"github.com/donohutcheon/gowebserver/routes/auth"
-	"github.com/donohutcheon/gowebserver/state"
-	"net/http"
-	"os"
-	"strings"
-	"time"
-
-	"github.com/dgrijalva/jwt-go"
 	e "github.com/donohutcheon/gowebserver/controllers/errors"
+	"github.com/donohutcheon/gowebserver/controllers/response/types"
 	"github.com/donohutcheon/gowebserver/datalayer"
+	"github.com/donohutcheon/gowebserver/router/auth"
+	"github.com/donohutcheon/gowebserver/state"
 	"golang.org/x/crypto/bcrypt"
+	"net/http"
+	"strings"
 )
 
 type Settings struct {
@@ -33,9 +29,9 @@ type User struct {
 	Roles        []string  `json:"roles"`
 	Settings     Settings  `json:"settings"`
 	Password     string    `json:"password,omitempty"`
-	AccessToken  string    `json:"accessToken,omitempty" sql:"-"`
+	/*AccessToken  string    `json:"accessToken,omitempty" sql:"-"`
 	RefreshToken string    `json:"refreshToken,omitempty" sql:"-"`
-	LoggedOutAt  time.Time `json:"loggedOutAt,omitempty"`
+	LoggedOutAt  time.Time `json:"loggedOutAt,omitempty"`*/
 }
 
 func NewUser(state *state.ServerState) *User {
@@ -111,32 +107,6 @@ func (u *User) Create() (*User, error) {
 	user := new(User)
 	user.convert(*dbUser)
 
-	//Create new JWT token for the newly registered user
-	now := time.Now()
-	epochSecs := now.Unix()
-	expireDateTime := epochSecs + auth.AccessTokenLifeSpan
-	accessToken := &auth.JSONWebToken{
-		UserID: dbUser.ID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expireDateTime,
-			IssuedAt:  epochSecs,
-		},
-	}
-	signedAccessToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), accessToken)
-	accessTokenString, _ := signedAccessToken.SignedString([]byte(os.Getenv("token_password")))
-	user.AccessToken = accessTokenString
-
-	refreshToken := &auth.JSONWebToken{
-		UserID: user.ID,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: epochSecs + auth.RefreshTokenLifeSpan,
-			IssuedAt:  epochSecs,
-		},
-	}
-	signedRefreshToken := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), refreshToken)
-	refreshTokenString, _ := signedRefreshToken.SignedString([]byte(os.Getenv("token_password")))
-	user.RefreshToken = refreshTokenString
-
 	user.Password = "" //delete password
 
 	return user, nil
@@ -205,4 +175,13 @@ func (u *User) ConfirmUser(nonce string) error {
 	}
 
 	return nil
+}
+
+func (u *User) GetAPIToken() (*auth.APITokenResponse, error) {
+	tokenResp, err := auth.CreateAPIToken(u.ID)
+	if err != nil {
+		return nil, e.Wrap("api token creation failed", http.StatusInternalServerError, err)
+	}
+
+	return tokenResp, nil
 }
