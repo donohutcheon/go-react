@@ -158,7 +158,7 @@ func ParsePagination(logger *log.Logger, queryParams url.Values, entity Sortable
 			SortDir:    sortDir,
 			isInfinite: isInfinite,
 		})
-	logger.Printf("Pagination: { page: %d, count: %d}", page, fetchCount)
+
 	return nil
 }
 

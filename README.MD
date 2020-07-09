@@ -63,7 +63,10 @@ Add card transaction
 curl -X POST -d '{"dateTime":"2020-04-25T11:39:41.422Z","amount":{"value":10000,"scale":2},"currencyCode":"ZAR","reference":"simulation","merchantName":"The Coders Bakery","merchantCity":"Cape Town","merchantCountryCode":"ZA","merchantCountryName":"South Africa","merchantCategoryCode":"bakeries","merchantCategoryName":"Bakeries","email":"donohutcheon@gmail.com","firstName":"Donovan","lastName":"Hutcheon"}' -H "Authorization: Bearer ${access_token}" -H 'Content-Type: application/json' localhost:8000/api/card-transactions/new
 
 curl -X POST -d '{"dateTime":"2020-04-25T11:39:41.422Z","amount":{"value":10000,"scale":2},"currencyCode":"ZAR","reference":"simulation","merchantName":"The Coders Bakery","merchantCity":"Cape Town","merchantCountryCode":"ZA","merchantCountryName":"South Africa","merchantCategoryCode":"bakeries","merchantCategoryName":"Bakeries","email":"donohutcheon@gmail.com","firstName":"Donovan","lastName":"Hutcheon"}
-' -H "Authorization: Bearer ${access_token}" -H 'Content-Type: application/json' charkadog.herokuapp.com/card-transactions/new
+' -H "Authorization: Bearer ${access_token}" -H 'Content-Type: application/json' charkadog.herokuapp.com/api/card-transactions/new
+
+
+access_token="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySUQiOjE2LCJleHAiOjE2MjU4MzU4NjMsImlhdCI6MTU5NDI5OTg2M30.NQkUPUbE_TKJKNb7l3FuvreKMBbWr23LWb9nIF41rGw"
 
 ```
 
