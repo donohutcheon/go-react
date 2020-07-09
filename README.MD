@@ -82,8 +82,6 @@ docker run -it --network host --rm postgres bash
 ```
 docker run -it --network host --rm mariadb mysql -hdonovanh -uroot -pcharka
 
-docker run -it --network host --rm mariadb mysql -heporqep6b4b8ql12.chr7pe7iynqr.eu-west-1.rds.amazonaws.com -ueb3fsl6m7o2tiaxo -ph0du2iazqmit1p2h fclpddz9oxai1nec
-
 ??? docker run -it --network side-project_default --rm mariadb mysql -hdonovanh -uroot -pcharka
 ```
 
