@@ -122,7 +122,8 @@ func NewForTesting(t *testing.T, callbacks *state.MockCallbacks) *state.ServerSt
 	}
 
 	h := router.NewHandlers(state)
-	h.SetupRoutes(r)
+	err := h.SetupRoutes(r)
+	require.NoError(t, err)
 
 	srv := server.New(r, "", "0")
 	l, err := net.Listen("tcp", ":0")
@@ -145,7 +146,10 @@ func runServer(state *state.ServerState, mainThreadWG *sync.WaitGroup) {
 	h := router.NewHandlers(state)
 
 	router := state.Router
-	h.SetupRoutes(router)
+	err := h.SetupRoutes(router)
+	if err != nil {
+		logger.Fatalf("Could not start router %s", err.Error())
+	}
 
 	//ServiceAddress address to listen on
 	bindAddress := os.Getenv("BIND_ADDRESS")

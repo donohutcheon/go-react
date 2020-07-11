@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/donohutcheon/gowebserver/controllers/errors"
 	"net/http"
 	"os"
+	"path/filepath"
 	"reflect"
 	"regexp"
 	"runtime"
@@ -19,10 +21,13 @@ import (
 	"github.com/gorilla/mux"
 )
 
+const (
+	staticPath = "static/build/"
+	indexPath = "index.html"
+)
+
 type Handlers struct {
 	serverState *state.ServerState
-	staticPath string
-	indexPath  string
 }
 
 func getFunctionName(i interface{}) string {
@@ -54,7 +59,12 @@ func (h *Handlers) WrapMiddlewareFunc(next routes.MiddlewareFunc, registry map[s
 }
 
 //SetupRoutes add home route to mux
-func (h *Handlers) SetupRoutes(router *mux.Router) {
+func (h *Handlers) SetupRoutes(router *mux.Router) error {
+	err := writeStaticWebConfig()
+	if err != nil {
+
+	}
+
 	registry := routes.GetRouteRegistry()
 	for r, e := range registry {
 		if e.Handler == nil {
@@ -66,6 +76,9 @@ func (h *Handlers) SetupRoutes(router *mux.Router) {
 	router.Use(mux.CORSMethodMiddleware(router))
 	router.Use(CORSAccessControlAllowOrigin(router))
 	router.Use(h.WrapMiddlewareFunc(JwtAuthentication, registry)) //attach JWT auth middleware
+	router.PathPrefix("/").Handler(h)
+
+	return nil
 }
 
 func CORSAccessControlAllowOrigin(r *mux.Router) mux.MiddlewareFunc {
@@ -84,8 +97,6 @@ func CORSAccessControlAllowOrigin(r *mux.Router) mux.MiddlewareFunc {
 func NewHandlers(state *state.ServerState) *Handlers {
 	return &Handlers{
 		serverState: state,
-		staticPath: "static/build/",
-		indexPath: "index.html",
 	}
 }
 
@@ -204,4 +215,58 @@ func JwtAuthentication (next http.Handler, state *state.ServerState, registry ma
 	})
 }
 
+// ServeHTTP inspects the URL path to locate a file within the static dir
+// on the SPA handler. If a file is found, it will be served. If not, the
+// file located at the index path on the SPA handler will be served. This
+// is suitable behavior for serving an SPA (single page application).
+func (h *Handlers) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// get the absolute path to prevent directory traversal
+	path, err := filepath.Abs(r.URL.Path)
+	if err != nil {
+		// if we failed to get the absolute path respond with a 400 bad request
+		// and stop
+		errors.WriteError(w, err, http.StatusBadRequest)
+		return
+	}
 
+	// prepend the path with the path to the static directory
+	path = filepath.Join(staticPath, path)
+
+	// check whether a file exists at the given path
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		// file does not exist, serve index.html
+		http.ServeFile(w, r, filepath.Join(staticPath, indexPath))
+		return
+	} else if err != nil {
+		// if we got an error (that wasn't that the file doesn't exist) stating the
+		// file, return a 500 internal server error and stop
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// otherwise, use http.FileServer to serve the static dir
+	http.FileServer(http.Dir(staticPath)).ServeHTTP(w, r)
+	return
+}
+
+func writeStaticWebConfig() error {
+	apiURL := os.Getenv("API_URL")
+	if len(apiURL) == 0 {
+		return nil
+	}
+
+	f, err := os.Create(staticPath + "runtime-config.js")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	config := []byte(fmt.Sprintf("window['runConfig'] = {apiUrl: '%s'}", apiURL))
+	_, err = f.Write(config)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
